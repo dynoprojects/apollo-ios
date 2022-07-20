@@ -51,7 +51,9 @@ extension IR {
               scalars.append(type)              
             }
           case let type as GraphQLEnumType: enums.append(type)
-          case let type as GraphQLInputObjectType: inputObjects.append(type)
+          case let type as GraphQLInputObjectType:
+            print("***", type)
+            inputObjects.append(type)
           default: continue
           }
         }

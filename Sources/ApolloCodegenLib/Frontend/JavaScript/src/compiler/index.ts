@@ -66,10 +66,14 @@ export function compileToIR(
   const fragmentMap = new Map<String, ir.FragmentDefinition>();
   const referencedTypes = new Set<GraphQLNamedType>();
 
+  //console.log(`?? ${print(schema)}`);
   for (const definitionNode of document.definitions) {
-    if (definitionNode.kind !== Kind.OPERATION_DEFINITION) continue;
+    if (definitionNode.kind === Kind.OPERATION_DEFINITION) {
+      operations.push(compileOperation(definitionNode));
+    } else { // if (definitionNode.kind === Kind.INPUT_OBJECT_TYPE_DEFINITION) {
 
-    operations.push(compileOperation(definitionNode));
+      //referencedTypes.add(getNamedType(definitionNode.name.value));
+    }
   }
 
   // We should have encountered all fragments because GraphQL validation normally makes sure
@@ -91,6 +95,15 @@ export function compileToIR(
     if (referencedTypes.has(type)) { return }
 
     referencedTypes.add(type)
+
+    if (type.name === "UpdateMessageInput") {
+    //   const fields = (schema.getType(type) as GraphQLInputObjectType).getFields()
+    // for (const field of fields.values()) {
+    //   console.log(`type ${field}`);
+    //   console.log(`${JSON.stringify()}`);
+
+    // }
+    }
 
     if (isInterfaceType(type)) {
       for (const objectType of schema.getPossibleTypes(type)) {
@@ -156,16 +169,20 @@ export function compileToIR(
     const name = operationDefinition.name.value;
     const operationType = operationDefinition.operation;
 
+    console.log(`+! ${name} ${operationDefinition.selectionSet.selections.join(",")} ${1}`);
+
     const variables = (operationDefinition.variableDefinitions || []).map(
       (node) => {
         const name = node.variable.name.value;
+
         const defaultValue = node.defaultValue ? valueFromValueNode(node.defaultValue) : undefined
 
         // The casts are a workaround for the lack of support for passing a type union
         // to overloaded functions in TypeScript.
         // See https://github.com/microsoft/TypeScript/issues/14107
         const type = typeFromAST(schema, node.type as any) as GraphQLType;
-
+console.log(`++ ${name} ${type} ${print(node)}`);
+;
         // `typeFromAST` returns `undefined` when a named type is not found
         // in the schema.
         if (!type) {
