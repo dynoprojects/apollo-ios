@@ -119,11 +119,13 @@ export function compileToIR(
   function addReferencedTypesFromInputObject(
     inputObject: GraphQLInputObjectType
   ) {
-    const fields = inputObject.astNode?.fields
+    const fields = (schema.getType(inputObject.name) as GraphQLInputObjectType).getFields();
     if (fields) {
-      for (const field of fields) {
-        const type = typeFromAST(schema, field.type) as GraphQLType
-        addReferencedType(getNamedType(type))
+      for (const [_name, field] of Object.entries(fields)) {
+        const type = schema.getType(getNamedType(field.type).name);
+        if (type) {
+          addReferencedType(type);
+        }
       }
     }
   }
