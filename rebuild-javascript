@@ -1,0 +1,3 @@
+#!/bin/bash
+
+(cd Sources/ApolloCodegenLib/Frontend/JavaScript && npm install && npm run build)
