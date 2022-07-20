@@ -169,7 +169,12 @@ class JavaScriptBridge {
     }
 
     self.context = context
-    
+
+    let logHandler: @convention(block) (String) -> Void = { string in
+        print("*** JSLOG", string)
+    }
+    context["console"]!["log"] = logHandler
+
     register(JavaScriptObject.self, forJavaScriptClass: "Object", from: context.globalObject)
     register(JavaScriptError.self, forJavaScriptClass: "Error", from: context.globalObject)
   }
@@ -430,4 +435,25 @@ extension Dictionary: CustomJavaScriptValueUnwrappable where Key == String, Valu
   var unwrapJSValue: Any {
     return mapValues(\.unwrapJSValue)
   }
+}
+extension JSContext {
+    subscript(_ key: NSString) -> JSValue? {
+        get { return objectForKeyedSubscript(key) }
+    }
+
+    subscript(_ key: NSString) -> Any? {
+        get { return objectForKeyedSubscript(key) }
+        set { setObject(newValue, forKeyedSubscript: key) }
+    }
+}
+
+extension JSValue {
+    subscript(_ key: NSString) -> JSValue? {
+        get { return objectForKeyedSubscript(key) }
+    }
+
+    subscript(_ key: NSString) -> Any? {
+        get { return objectForKeyedSubscript(key) }
+        set { setObject(newValue, forKeyedSubscript: key) }
+    }
 }
