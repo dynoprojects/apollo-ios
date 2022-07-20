@@ -75,7 +75,7 @@ extension TemplateRenderer {
     \(ifLet: headerTemplate, { "\($0)\n" })
     \(ImportStatementTemplate.Operation.template(forConfig: config))
 
-    \(if: config.output.operations.isInModule && !config.output.schemaTypes.isInModule,
+    \(if: true,
       template.wrappedInNamespace(config.schemaName),
     else:
       template)
@@ -104,6 +104,7 @@ extension TemplateRenderer {
   }
 
   var embeddedAccessControlModifier: String {
+    // xxx
     guard config.output.schemaTypes.isInModule else { return "" }
 
     return "public "
