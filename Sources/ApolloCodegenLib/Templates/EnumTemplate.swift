@@ -21,7 +21,7 @@ struct EnumTemplate: TemplateRenderer {
         enumCase(for: $0)
       }), separator: "\n")
     }
-    
+
     """
     )
   }
@@ -39,13 +39,13 @@ struct EnumTemplate: TemplateRenderer {
       return """
         \(documentation: graphqlEnumValue.documentation, config: config)
         @available(*, deprecated, message: \"\(reason)\")
-        case \(graphqlEnumValue.name)
+        case `\(graphqlEnumValue.name)`
         """
 
     default:
       return """
         \(documentation: graphqlEnumValue.documentation, config: config)
-        case \(graphqlEnumValue.name)
+        case `\(graphqlEnumValue.name)`
         """
     }
   }

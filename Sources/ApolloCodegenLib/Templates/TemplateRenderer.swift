@@ -156,8 +156,8 @@ private struct ImportStatementTemplate {
       \(ImportStatementTemplate.template)
       @_exported import enum ApolloAPI.GraphQLEnum
       @_exported import enum ApolloAPI.GraphQLNullable
-      \(if: config.output.operations != .inSchemaModule, "import \(config.schemaModuleName)")
       """
+      //      \(if: config.output.operations != .inSchemaModule, "import \(config.schemaModuleName)")
     }
   }
 
