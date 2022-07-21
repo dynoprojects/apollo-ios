@@ -15,12 +15,21 @@ struct CustomScalarTemplate: TemplateRenderer {
     TemplateString(
     """
     // @generated
-    // This file was automatically generated and can be edited to implement
-    // advanced custom scalar functionality.
-    //
-    // Any changes to this file will not be overwritten by future
-    // code generation execution.
     """
+    // > This file was automatically generated and can be edited to implement
+    // > advanced custom scalar functionality.
+    // >
+    // > Any changes to this file will not be overwritten by future
+    // > code generation execution.
+    //
+    // [cpiro] ... lol, no. We're not going to put custom code in the
+    // __generated__ directory, and we're certainly not going to rely on any
+    // shitty logic that protects changes to this file. afaict the codegen
+    // script doesn't remove any old files, so we should `rm -rf` the old
+    // gencode to be sure no old cruft remains. I'd remove these files
+    // altogether, but it'll be convenient to know which custom scalars are
+    // referenced at a glance -- you'll notice a new generated file if you
+    // reference a new scalar.
     )
   }
 
@@ -29,8 +38,8 @@ struct CustomScalarTemplate: TemplateRenderer {
     """
     \(documentation: documentationTemplate, config: config)
     \(embeddedAccessControlModifier)\
-    typealias \(graphqlScalar.name.firstUppercased) = String
-    
+    // typealias \(graphqlScalar.name.firstUppercased) = String
+
     """
     )
   }

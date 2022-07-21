@@ -13,6 +13,6 @@ struct CustomScalarFileGenerator: FileGenerator {
   }
 
   var target: FileTarget { .customScalar }
-  var fileName: String { "\(graphqlScalar.name).swift" }
+  var fileName: String { "\(graphqlScalar.name)+Stub.swift" }
   var overwrite: Bool { false }
 }
