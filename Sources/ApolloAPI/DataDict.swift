@@ -1,4 +1,7 @@
 /// A structure that wraps the underlying data dictionary used by `SelectionSet`s.
+
+import Foundation
+
 public struct DataDict: Hashable {
 
   public var _data: JSONObject
@@ -13,7 +16,63 @@ public struct DataDict: Hashable {
   }
 
   @inlinable public subscript<T: AnyScalarType & Hashable>(_ key: String) -> T {
-    get { _data[key] as! T }
+    get {
+      func warnOrExit() {
+        print("*** BAD DataDict subscript ***", _data[key] ?? "(nil)", T.self, _data[key] as? T ?? "(nil)")
+#if DEBUG
+        fatalError("*** bad DataDict subscript ***")
+#endif
+      }
+
+      if T.self == Date.self {
+        if let value = _data[key] as? String {
+          do {
+            return try Date(value, strategy: .iso8601) as! T
+          } catch {
+            warnOrExit()
+            return Date() as! T
+          }
+        } else {
+          warnOrExit()
+          return Date() as! T
+        }
+      } else if T.self == Optional<Date>.self {
+        guard let value = _data[key] as? String else { return Optional<Date>.none as! T }
+        do {
+          return try Date(value, strategy: .iso8601
+            .year()
+            .month()
+            .day()
+            .time(includingFractionalSeconds: true)
+            .timeZone(separator: .omitted)) as! T
+        } catch {
+          warnOrExit()
+          return Date() as! T
+        }
+      } else if let value = _data[key] as? T {
+        return value
+      } else {
+        if T.self == String.self {
+          warnOrExit()
+          return "" as! T
+        } else if T.self == Int.self {
+          warnOrExit()
+          return 0 as! T
+        } else if T.self == Bool.self {
+          warnOrExit()
+          return false as! T
+        } else if T.self == Float.self {
+          warnOrExit()
+          return 0.0 as! T
+        } else if T.self == Double.self {
+          warnOrExit()
+          return 0.0 as! T
+        } else {
+          warnOrExit()
+          fatalError("*** bad DataDict subscript ***")
+        }
+      }
+    }
     set { _data[key] = newValue }
     _modify {
       var value = _data[key] as! T
@@ -21,7 +80,7 @@ public struct DataDict: Hashable {
       yield &value
     }
   }
-  
+
   @inlinable public subscript<T: SelectionSetEntityValue>(_ key: String) -> T {
     get { T.init(fieldData: _data[key], variables: _variables) }
     set { _data[key] = newValue._fieldData }
