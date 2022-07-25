@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
   name: "Apollo",
   platforms: [
-    .iOS(.v12),
+    .iOS(.v15),
     .macOS(.v10_14),
     .tvOS(.v12),
     .watchOS(.v5)
@@ -33,7 +33,7 @@ let package = Package(
       url: "https://github.com/apple/swift-collections",
       .upToNextMajor(from: "1.0.0")),
     .package(
-      url: "https://github.com/apple/swift-argument-parser.git", 
+      url: "https://github.com/apple/swift-argument-parser.git",
       .upToNextMajor(from: "1.2.0")),
   ],
   targets: [
@@ -50,7 +50,7 @@ let package = Package(
       dependencies: [],
       exclude: [
         "Info.plist"
-      ]),    
+      ]),
     .target(
       name: "ApolloCodegenLib",
       dependencies: [
