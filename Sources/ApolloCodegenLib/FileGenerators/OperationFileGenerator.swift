@@ -1,5 +1,4 @@
 import Foundation
-import ApolloUtils
 
 /// Generates a file containing the Swift representation of a [GraphQL Operation](https://spec.graphql.org/draft/#sec-Language.Operations).
 struct OperationFileGenerator: FileGenerator {
@@ -25,5 +24,5 @@ struct OperationFileGenerator: FileGenerator {
   }
 
   var target: FileTarget { .operation(irOperation.definition) }
-  var fileName: String { "\(irOperation.definition.nameWithSuffix).swift" }
+  var fileName: String { irOperation.definition.nameWithSuffix }
 }

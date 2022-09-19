@@ -1,5 +1,70 @@
 # Change Log
 
+## v1.0.0-beta.4
+
+This is the fourth Beta Release of Apollo iOS 1.0. The Beta version has full feature parity with the 0.x.x releases. The API is expected to be mostly stable. Some breaking changes may occur due to user feedback prior to General Availability (GA) Release. The Beta does not have complete documentation or usage guides, which will be completed prior to GA.
+
+This first major version will include a new code generation engine, better generated models, and many syntax and performance improvements across the entire library. The primary goal of Apollo iOS 1.0 is to stabilize the API of the model layer and provide a foundation for future feature additions and evolution of the library.
+
+* **Breaking: Generated Files now have the file extension `.graphql.swift`.**
+  * This allows you to clearly distinguish which files in your project are Apollo generated files.
+  * Generated template files that are user-editable will still have the `.swift` file extension. 
+    * `CustomScalar` templates as well as the `SchemaConfiguration` file are user-editable. Once these are generated, they are never overwritten by future code generation execution.
+  * This change is also necessary for the identification of generated files for the pruning functionality.
+* **New: Pruning of Unused Generated Files**
+  * Generated files that no longer should exist are automatically deleted now. This occurs when a `.graphql` file is removed from your project. The generated file will also be deleted the next time code generation is run.
+  * This can be disabled with the new `pruneGeneratedFiles` codegen option.
+  * **Breaking: Automatic Deletion will not delete files generated in previous Alpha/Beta versions.**
+    * Only files with the `.graphql.swift` file extension will be deleted.
+    * If you have used previous Alpha/Beta versions, you will need to delete your generated files manually one last time before running code generation with this version.
+* **New: Enum Case Names are Converted to Camel Case in Generated Enums.** 
+  * **Breaking: This is enabled by default, your call sites will need to be updated.**
+  * Camel case conversion for enum cases can be disabled with the new `conversionStrategies.enumCases` codegen option.
+  * Thanks [@bannzai](https://github.com/bannzai) for this one!
+* **Fixed: Swift Keywords are escaped when used as names of Enum Values** Thanks [@bannzai](https://github.com/bannzai) for the fix!
+* **Fixed: Compilation Error when Using Fragment with Lowercased Name** This was an edge case that only occured when referencing a nested, merged selection set from the lowercase named fragment.
+* **Fixed: Retain Cycle in `ReadTransaction`** Thanks [@lorraine-hatch](https://github.com/lorraine-hatch) for the fix!
+* **Fixed: String `jsonValue` Initializer for Large Numbers** Thanks [@Almaz5200](https://github.com/Almaz5200) for the fix!
+
+## v1.0.0-beta.3
+
+This is the third Beta Release of Apollo iOS 1.0. The Beta version has full feature parity with the 0.x.x releases. The API is expected to be mostly stable. Some breaking changes may occur due to user feedback prior to General Availability (GA) Release. The Beta does not have complete documentation or usage guides, which will be completed prior to GA.
+
+This first major version will include a new code generation engine, better generated models, and many syntax and performance improvements across the entire library. The primary goal of Apollo iOS 1.0 is to stabilize the API of the model layer and provide a foundation for future feature additions and evolution of the library.
+
+* **Breaking: Changed the generated Schema files** 
+  * The schema will now have two generated files, `SchemaMetadata.swift` and `SchemaConfiguration.swift.`
+  * We wanted to more clearly separate the parts of the schema that are generated for you (metadata) from the parts that you can configure yourself (configuration).    
+  * **If you were using the last beta, you’ll need to move your cache key resolution logic into `SchemaConfiguration.swift`. You should also delete the old generated files.*
+  * *We will be implementing automatic deletion of generated files that should no longer be part of your project in a future beta, so you won't need to delete those files manually anymore.*
+* **New: Added SPM Plugin for Code Generation CLI**
+  * When including Apollo iOS via Swift Package Manager, the Code Generation CLI is now accessible as an SPM Plugin.
+  * After installing the `apollo-ios` package, run `swift package --disable-sandbox apollo-initialize-codegen-config` to create the codegen configuration file.
+  * Then you can run `swift package --disable-sandbox apollo-generate` to run code generation.
+  * The `--disable-sandbox` or `--allow-writing-to-directory .` arguments must be used when running the Code Generation CLI via the SPM plugin to give the plugin permission to write the generated files to the output directory configured in your codegen configuration file. 
+* **Fixed: Compilation errors when schema types had lowercase names**
+* **Fixed: Codegen engine crashing in specific situations** 
+  * There were some bugs in the codegen compiler when merging nested fragments with non-matching parent types and using default values for input object list fields.
+* **Fixed: Issues with websocket reconnections** Thanks [@STomperi](https://github.com/STomperi) for the fix!
+
+## v1.0.0-beta.2
+
+This is the second Beta Release of Apollo iOS 1.0. The Beta version has full feature parity with the 0.x.x releases. The API is expected to be mostly stable. Some breaking changes may occur due to user feedback prior to General Availability (GA) Release. The Beta does not have complete documentation or usage guides, which will be completed prior to GA.
+
+This first major version will include a new code generation engine, better generated models, and many syntax and performance improvements across the entire library. The primary goal of Apollo iOS 1.0 is to stabilize the API of the model layer and provide a foundation for future feature additions and evolution of the library.
+
+**Breaking: Changed API for Cache Key Configuration:** Cache Key Resolution is now easier to configure. See `CacheKeyInfo` for examples and documentation.
+**Breaking: Changed API for generated Schema Types to support dynamic types** The API for generated schema types now initializes instances of `Object`, `Interface`, and `Union` for each corresponding type in your schema. These are still generated by the code generation engine. This differs from the previous API which generated static types that were subclasses of `Object`, `Interface`, and `Union`. The change provides the API to support the future addition of dynamic types added to your schema at runtime.
+**New: Codegen CLI will now automatically create output directories:** You no longer are required to have already created all intermediary directories for your codegen output paths prior to running code generation. 
+**New: Codegen CLI is built locally with CocoaPods installations:** This is to ensure that the version of the Codegen CLI is the same as ApolloCodegenLib. This behaviour will be extended to Swift Package Manager installations too.
+**New: Swift Keywords are escaped when used as names of fields or types in generated objects:** Previously, using Swift keywords (eg. `self`, `protocol`, `Type`) as the names of fields in your operations or types in your schema would cause compilation errors in your generated code. Now, these names will be escaped with backticks to prevent compiler errors. **The names `\_\_data` and `fragments` cannot be used as field names as they conflict with Apollo's generated object APIs** Using these names will result in a validation error being thrown when attempting to run the code generation engine.
+**Fixed: Fragments with lowercase names caused compilation errors:** This bug is fixed. Fragments with lowercase names will be correctly uppercased when referencing the generated `Fragment` objects. 
+**Fixed: Build errors in Xcode 14/Swift 5.7:** The library was updated to support the Swift 5.7 language version. Swift 5.6 is still supported. 
+**Fixed: Xcode 14 does not support Bitcode:** Starting with Xcode 14, bitcode is no longer required for watchOS and tvOS applications, and the App Store no longer accepts bitcode submissions from Xcode 14.  
+**Fixed: "No such module `ApolloAPI`" error when using CocoaPods:** The podspec was not configured to import all required source files and some import statements were unnecessary in a CocoaPods environment. A code generation configuration option was added to order to ensure generated files are generated with the correct import statements in a CocoaPods environment. **When generating code for a project that includes `Apollo` via Cocoapods, you must set the `cocoapodsCompatibleImportStatements` option to `true` in your `ApolloCodegenConfiguration`.** When using the Codegen CLI that is built for you during `pod install` the `apollo-ios-cli init` command will default this option to `true`. When building the Codegen CLI in by other method, this option will default to `false`.  
+**Removed: ApolloUtils target no longer necessary:** The things that used to be shared here are actually no longer shared. There is no code shared between the `Apollo` and `ApolloCodegenLib` targets.  
+**Removed: ApolloCodegenConfiguration.validation:** This method was incorrectly requiring destination paths to exist before code generation. Once that was removed it was no longer necessary. Any errors that are encountered with destination output paths will be raised during code generation.
+
 ## v1.0.0-beta.1
 
 This is the first Beta Release of Apollo iOS 1.0. The Beta version has full feature parity with the 0.x.x releases. The API is expected to be mostly stable. Some breaking changes may occur due to user feedback prior to General Availability (GA) Release. The Beta does not have complete documentation or usage guides, which will be completed prior to GA.
@@ -193,6 +258,9 @@ In 1.0, because we know that `Cat` implements the `Pet` interface, the `name` fi
 
 * The code generation engine is now written in native Swift! This makes it easier for Swift developers to contribute to the project or alter the generated code for their specific needs! In future iterations, we hope to open up the code generation templating API to allow for even easier customization of your generated code!
 * Computation of Cache Keys is protocol oriented now. Instead of a single `cacheKeyForObject` closure on your `ApolloClient`, you can implement cache key computation on individual object types with the `CacheKeyProvider` protocol. See [Cache Key Resolution](https://github.com/apollographql/apollo-ios/blob/release/1.0-alpha-incubating/CodegenProposal.md#cache-key-resolution) in the RFC for more information.
+
+## v0.53.0
+- **Remove all instances of bitcode as not supported in Xcode 14**: Starting with Xcode 14, bitcode is no longer required for watchOS and tvOS applications, and the App Store no longer accepts bitcode submissions from Xcode 14. [#2398](https://github.com/apollographql/apollo-ios/pull/2398) - _Thanks to [@stareque-atlassian](stareque-atlassian) for the contribution!_
 
 ## v0.52.0
 - **Add codegen option for excludes**: There is a new property on the codegen configuration options to allow files matching the pattern to be excluded, in the case they are found in the `includes` path. [#2205](https://github.com/apollographql/apollo-ios/pull/2205) - _Thanks to [@bannzai](https://github.com/bannzai) for the contribution!_

@@ -1,5 +1,4 @@
 import Foundation
-import ApolloUtils
 
 /// Generates a file containing the Swift representation of a [GraphQL Enum](https://spec.graphql.org/draft/#sec-Enums).
 struct EnumFileGenerator: FileGenerator {
@@ -13,5 +12,5 @@ struct EnumFileGenerator: FileGenerator {
   }
 
   var target: FileTarget { .enum }
-  var fileName: String { "\(graphqlEnum.name).swift" }
+  var fileName: String { graphqlEnum.name }
 }

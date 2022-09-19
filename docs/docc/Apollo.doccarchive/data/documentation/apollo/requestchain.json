@@ -106,7 +106,7 @@
     {
       "identifiers" : [
         "doc:\/\/Apollo\/documentation\/Apollo\/RequestChain\/additionalErrorHandler",
-        "doc:\/\/Apollo\/documentation\/Apollo\/RequestChain\/isNotCancelled"
+        "doc:\/\/Apollo\/documentation\/Apollo\/RequestChain\/isCancelled"
       ],
       "title" : "Instance Properties"
     },
@@ -145,7 +145,7 @@
 "doc://Apollo/documentation/Apollo": {
   "abstract" : [
     {
-      "text" : "A Strongly Typed, Swift First, GraphQL client.",
+      "text" : "A Strongly typed, Swift-first, GraphQL client.",
       "type" : "text"
     }
   ],
@@ -545,28 +545,9 @@
   "type" : "topic",
   "url" : "\/documentation\/apollo\/requestchain\/init(interceptors:callbackqueue:)"
 },
-"doc://Apollo/documentation/Apollo/RequestChain/isNotCancelled": {
+"doc://Apollo/documentation/Apollo/RequestChain/isCancelled": {
   "abstract" : [
-    {
-      "text" : "Checks the underlying value of ",
-      "type" : "text"
-    },
-    {
-      "code" : "isCancelled",
-      "type" : "codeVoice"
-    },
-    {
-      "text" : ". Set up like this for better readability in ",
-      "type" : "text"
-    },
-    {
-      "code" : "guard",
-      "type" : "codeVoice"
-    },
-    {
-      "text" : " statements",
-      "type" : "text"
-    }
+
   ],
   "fragments" : [
     {
@@ -579,7 +560,7 @@
     },
     {
       "kind" : "identifier",
-      "text" : "isNotCancelled"
+      "text" : "isCancelled"
     },
     {
       "kind" : "text",
@@ -591,12 +572,12 @@
       "text" : "Bool"
     }
   ],
-  "identifier" : "doc:\/\/Apollo\/documentation\/Apollo\/RequestChain\/isNotCancelled",
+  "identifier" : "doc:\/\/Apollo\/documentation\/Apollo\/RequestChain\/isCancelled",
   "kind" : "symbol",
   "role" : "symbol",
-  "title" : "isNotCancelled",
+  "title" : "isCancelled",
   "type" : "topic",
-  "url" : "\/documentation\/apollo\/requestchain\/isnotcancelled"
+  "url" : "\/documentation\/apollo\/requestchain\/iscancelled"
 },
 "doc://Apollo/documentation/Apollo/RequestChain/kickoff(request:completion:)": {
   "abstract" : [

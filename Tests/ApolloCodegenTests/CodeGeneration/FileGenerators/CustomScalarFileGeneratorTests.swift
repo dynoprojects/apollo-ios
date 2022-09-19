@@ -1,7 +1,6 @@
 import XCTest
 import Nimble
 @testable import ApolloCodegenLib
-import ApolloUtils
 
 class CustomScalarFileGeneratorTests: XCTestCase {
   let graphqlScalar = GraphQLScalarType.mock(name: "MockCustomScalar")
@@ -35,7 +34,7 @@ class CustomScalarFileGeneratorTests: XCTestCase {
     // given
     buildSubject()
 
-    let expected = "\(graphqlScalar.name).swift"
+    let expected = graphqlScalar.name
 
     // then
     expect(self.subject.fileName).to(equal(expected))

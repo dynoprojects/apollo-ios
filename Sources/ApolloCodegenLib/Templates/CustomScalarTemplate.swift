@@ -1,5 +1,4 @@
 import Foundation
-import ApolloUtils
 
 /// Provides the format to convert a [GraphQL Custom Scalar](https://spec.graphql.org/draft/#sec-Scalars.Custom-Scalars)
 /// into Swift code.
@@ -9,7 +8,7 @@ struct CustomScalarTemplate: TemplateRenderer {
 
   let config: ApolloCodegen.ConfigurationContext
 
-  let target: TemplateTarget = .schemaFile
+  let target: TemplateTarget = .schemaFile(type: .customScalar)
 
   var headerTemplate: TemplateString? {
     TemplateString(

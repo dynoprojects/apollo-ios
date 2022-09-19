@@ -2,7 +2,6 @@ import XCTest
 import Nimble
 @testable import ApolloCodegenLib
 import ApolloCodegenInternalTestHelpers
-import ApolloUtils
 
 class FragmentFileGeneratorTests: XCTestCase {
   var irFragment: IR.NamedFragment!
@@ -71,7 +70,7 @@ class FragmentFileGeneratorTests: XCTestCase {
     // given
     try buildSubject()
 
-    let expected = "\(irFragment.definition.name).swift"
+    let expected = irFragment.definition.name
 
     // then
     expect(self.subject.fileName).to(equal(expected))

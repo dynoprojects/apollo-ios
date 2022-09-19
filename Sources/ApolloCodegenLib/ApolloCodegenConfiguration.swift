@@ -289,10 +289,42 @@ public struct ApolloCodegenConfiguration: Codable, Equatable {
     ///
     /// See `APQConfig` for more information on Automatic Persisted Queries.
     public let apqs: APQConfig
+    /// Generate import statements that are compatible with including `Apollo` via Cocoapods.
+    ///
+    /// Cocoapods bundles all files from subspecs into the main target for a pod. This means that
+    /// when including `Apollo` via Cocoapods, the files in `ApolloAPI` will be added to the
+    /// `Apollo` target. In order for the generated code to compile, all `import ApolloAPI`
+    /// statements must be generated as `import Apollo` instead. Setting this option to `true`
+    /// configures the import statements to be compatible with Cocoapods.
+    ///
+    /// Defaults to `false`.
+    public let cocoapodsCompatibleImportStatements: Bool
     /// Annotate generated Swift code with the Swift `available` attribute and `deprecated`
     /// argument for parts of the GraphQL schema annotated with the built-in `@deprecated`
     /// directive.
     public let warningsOnDeprecatedUsage: Composition
+    /// Rules for how to convert the names of values from the schema in generated code.
+    public let conversionStrategies: ConversionStrategies
+    /// Whether unused generated files will be automatically deleted.
+    ///
+    /// This will automatically delete any previously generated files that no longer
+    /// would be generated.
+    ///
+    /// This includes:
+    /// - Operations whose definitions do not exist
+    ///   - `Query`, `Mutation`, `Subscription`, `LocalCacheMutation`
+    /// - `Fragments` whose definitions do not exist
+    /// - Schema Types that are no longer referenced
+    ///   - `Object`, `Interface`, `Union`
+    /// - `TestMocks` for schema types that are no longer referenced
+    /// - `InputObjects` that are no longer referenced
+    ///
+    /// This only prunes files in directories that would have been generated given the current ``ApolloCodegenConfiguration/FileInput`` and ``ApolloCodegenConfiguration/FileOutput``
+    /// options. Generated files that are no longer in the search paths of the
+    /// ``ApolloCodegenConfiguration`` will not be pruned.
+    ///
+    ///  Defaults to `true`.
+    public let pruneGeneratedFiles: Bool
 
     /// Designated initializer.
     ///
@@ -304,23 +336,34 @@ public struct ApolloCodegenConfiguration: Codable, Equatable {
     ///  - deprecatedEnumCases: How deprecated enum cases from the schema should be handled.
     ///  - schemaDocumentation: Whether schema documentation is added to the generated files.
     ///  - apqs: Whether the generated operations should use Automatic Persisted Queries.
+    ///  - cocoapodsCompatibleImportStatements: Generate import statements that are compatible with
+    ///    including `Apollo` via Cocoapods.
     ///  - warningsOnDeprecatedUsage: Annotate generated Swift code with the Swift `available`
-    ///  attribute and `deprecated` argument for parts of the GraphQL schema annotated with the
-    ///  built-in `@deprecated` directive.
+    ///    attribute and `deprecated` argument for parts of the GraphQL schema annotated with the
+    ///    built-in `@deprecated` directive.
+    ///  - conversionStrategies: Rules for how to convert the names of values from the schema in
+    ///    generated code.
+    ///  - pruneGeneratedFiles: Whether unused generated files will be automatically deleted.
     public init(
       additionalInflectionRules: [InflectionRule] = [],
       queryStringLiteralFormat: QueryStringLiteralFormat = .multiline,
       deprecatedEnumCases: Composition = .include,
       schemaDocumentation: Composition = .include,
       apqs: APQConfig = .disabled,
-      warningsOnDeprecatedUsage: Composition = .include
+      cocoapodsCompatibleImportStatements: Bool = false,
+      warningsOnDeprecatedUsage: Composition = .include,
+      conversionStrategies: ConversionStrategies = .init(),
+      pruneGeneratedFiles: Bool = true
     ) {
       self.additionalInflectionRules = additionalInflectionRules
       self.queryStringLiteralFormat = queryStringLiteralFormat
       self.deprecatedEnumCases = deprecatedEnumCases
       self.schemaDocumentation = schemaDocumentation
       self.apqs = apqs
+      self.cocoapodsCompatibleImportStatements = cocoapodsCompatibleImportStatements
       self.warningsOnDeprecatedUsage = warningsOnDeprecatedUsage
+      self.conversionStrategies = conversionStrategies
+      self.pruneGeneratedFiles = pruneGeneratedFiles
     }
   }
 
@@ -338,6 +381,29 @@ public struct ApolloCodegenConfiguration: Codable, Equatable {
   public enum Composition: String, Codable, Equatable {
     case include
     case exclude
+  }
+
+  /// ``CaseConversionStrategy`` is used to specify the strategy used to convert the casing of
+  /// GraphQL schema values into generated Swift code.
+  public enum CaseConversionStrategy: String, Codable, Equatable {
+    /// Generates swift code using the exact name provided in the GraphQL schema
+    /// performing no conversion.
+    case none
+    /// Convert to lower camel case from `snake_case`, `UpperCamelCase`, or `UPPERCASE`.
+    case camelCase
+  }
+
+  /// ``ConversionStrategies`` configures rules for how to convert the names of values from the
+  /// schema in generated code.
+  public struct ConversionStrategies: Codable, Equatable {
+    /// Determines how the names of enum cases in the GraphQL schema will be converted into
+    /// cases on the generated Swift enums.
+    /// Defaultss to ``ApolloCodegenConfiguration/CaseConversionStrategy/camelCase``
+    public let enumCases: CaseConversionStrategy
+
+    public init(enumCases: CaseConversionStrategy = .camelCase) {
+      self.enumCases = enumCases
+    }
   }
 
   /// Enum to enable using
@@ -452,132 +518,6 @@ public struct ApolloCodegenConfiguration: Codable, Equatable {
     self.schemaDownloadConfiguration = schemaDownloadConfiguration
   }
 
-}
-
-// MARK: - Validation Extension
-
-extension ApolloCodegenConfiguration {
-  public enum PathType {
-    case schema
-    case schemaTypes
-    case operations
-    case operationIdentifiers
-
-    public var errorRecoverySuggestion: String {
-      switch self {
-      case .schema:
-        return "Check that the schema input path is an existing schema file containing SDL or JSON."
-      case .schemaTypes:
-        return "Check that the schema types output path exists and is a directory, or can be created."
-      case .operations:
-        return "Check that the operations output path exists and is a directory, or can be created."
-      case .operationIdentifiers:
-        return "Check that the operations identifiers path is an existing file or can be created."
-      }
-    }
-  }
-
-  /// Errors which can happen with code generation
-  public enum Error: Swift.Error, LocalizedError, Equatable {
-    case notAFile(PathType)
-    case notADirectory(PathType)
-    case folderCreationFailed(PathType, underlyingError: Swift.Error)
-    case testMocksInvalidSwiftPackageConfiguration
-
-    public var errorDescription: String {
-      switch self {
-      case let .notAFile(pathType):
-        return "\(pathType) path must be a file!"
-      case let .notADirectory(pathType):
-        return "\(pathType) path must be a folder!"
-      case let .folderCreationFailed(pathType, underlyingError):
-        return "\(pathType) folder cannot be created! Error: \(underlyingError)"
-      case .testMocksInvalidSwiftPackageConfiguration:
-        return "Invalid Configuration: Test mocks swift package without schema types swift package generated!"
-      }
-    }
-
-    public var recoverySuggestion: String {
-      switch self {
-      case let .notAFile(pathType),
-        let .notADirectory(pathType),
-        let .folderCreationFailed(pathType, _):
-        return pathType.errorRecoverySuggestion
-      case .testMocksInvalidSwiftPackageConfiguration:
-        return "Schema Types must be generated with module type 'swiftPackageManager' to generate a swift package for test mocks."
-      }
-    }
-
-    public func logging(withPath path: String) -> Error {
-      CodegenLogger.log(self.logMessage(forPath: path), logLevel: .error)
-      CodegenLogger.log(self.recoverySuggestion, logLevel: .debug)
-      return self
-    }
-
-    private func logMessage(forPath path: String) -> String {
-      self.errorDescription + "Path: \(path)"
-    }
-
-    public static func == (lhs: Error, rhs: Error) -> Bool {
-      lhs.errorDescription == rhs.errorDescription
-    }
-  }
-
-  /// Validates paths within the configuration ensuring that required files exist and that output
-  /// directories can be created.
-  public func validate() throws {
-    try validateTestMocksConfiguration()
-
-    let fileManager = FileManager.default.apollo
-
-    CodegenLogger.log("Validating \(String(describing: self))", logLevel: .debug)
-
-    // File inputs
-    if input.schemaSearchPaths.count == 1 {
-      let schemaPath = input.schemaSearchPaths[0]
-      guard fileManager.doesFileExist(atPath: schemaPath) else {
-        throw Error.notAFile(.schema).logging(withPath: schemaPath)
-      }
-    }
-
-    // File outputs - schema types
-    try requireDirectory(atPath: output.schemaTypes.path, ofType: .schemaTypes)
-
-    // File outputs - operations
-    if case .absolute(let operationsOutputPath) = output.operations {
-      try requireDirectory(atPath: operationsOutputPath, ofType: .operations)
-    }
-
-    // File outputs - operation identifiers
-    if let operationIdentifiersPath = output.operationIdentifiersPath {
-      if fileManager.doesDirectoryExist(atPath: operationIdentifiersPath) {
-        throw Error.notAFile(.operationIdentifiers).logging(withPath: operationIdentifiersPath)
-      }
-    }
-  }
-
-  private func validateTestMocksConfiguration() throws {
-    if case .swiftPackage = output.testMocks,
-        output.schemaTypes.moduleType != .swiftPackageManager {
-      throw Error.testMocksInvalidSwiftPackageConfiguration
-    }
-  }
-
-  /// Validates that if the given path exists it is a directory. If it does not exist it attempts to create it.
-  private func requireDirectory(atPath path: String, ofType pathType: PathType) throws {
-    let fileManager = FileManager.default.apollo
-
-    if fileManager.doesFileExist(atPath: path) {
-      throw Error.notADirectory(pathType).logging(withPath: path)
-    }
-
-    do {
-      try fileManager.createDirectoryIfNeeded(atPath: path)
-    } catch (let underlyingError) {
-      throw Error.folderCreationFailed(pathType, underlyingError: underlyingError)
-        .logging(withPath: path)
-    }
-  }
 }
 
 // MARK: - Helpers

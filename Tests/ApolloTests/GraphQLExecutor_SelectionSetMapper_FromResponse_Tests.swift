@@ -138,6 +138,22 @@ class GraphQLExecutor_SelectionSetMapper_FromResponse_Tests: XCTestCase {
     XCTAssertEqual(data.customScalar, "12345678")
   }
 
+  func test__nonnull_customScalar_asString__givenDataAsInt64_getsValue() throws {
+    // given
+    typealias GivenCustomScalar = String
+
+    class GivenSelectionSet: MockSelectionSet {
+      override class var selections: [Selection] { [.field("customScalar", GivenCustomScalar.self)] }
+    }
+    let object: JSONObject = ["customScalar": Int64(989561700)]
+
+    // when
+    let data = try readValues(GivenSelectionSet.self, from: object)
+
+    // then
+    XCTAssertEqual(data.customScalar, "989561700")
+  }
+
   func test__nonnull_customScalar_asString__givenDataAsDouble_getsValue() throws {
     // given
     typealias GivenCustomScalar = String
@@ -270,7 +286,7 @@ class GraphQLExecutor_SelectionSetMapper_FromResponse_Tests: XCTestCase {
     let data = try readValues(GivenSelectionSet.self, from: object)
 
     // then
-    XCTAssertEqual(data.size, GraphQLEnum<MockEnum>.__unknown("GIGANTIC"))
+    XCTAssertEqual(data.size, GraphQLEnum<MockEnum>.unknown("GIGANTIC"))
   }
 
   func test__nonnull_enum__givenDataMissingKeyForField_throwsMissingValueError() {
@@ -449,9 +465,9 @@ class GraphQLExecutor_SelectionSetMapper_FromResponse_Tests: XCTestCase {
 
     // then
     XCTAssertEqual(data.favorites, [
-                    GraphQLEnum<MockEnum>.__unknown("10"),
-                    GraphQLEnum<MockEnum>.__unknown("20"),
-                    GraphQLEnum<MockEnum>.__unknown("30")])
+                    GraphQLEnum<MockEnum>.unknown("10"),
+                    GraphQLEnum<MockEnum>.unknown("20"),
+                    GraphQLEnum<MockEnum>.unknown("30")])
   }
 
   func test__nonnull_list_nonnull_scalar__givenDataWithElementTypeNotConvertibleToFieldType_throwsCouldNotConvertError() throws {
@@ -683,7 +699,7 @@ class GraphQLExecutor_SelectionSetMapper_FromResponse_Tests: XCTestCase {
     let data = try readValues(GivenSelectionSet.self, from: object)
 
     // then
-    XCTAssertEqual(data.favorites, [GraphQLEnum<MockEnum>.__unknown("Purple")])
+    XCTAssertEqual(data.favorites, [GraphQLEnum<MockEnum>.unknown("Purple")])
   }
 
   func test__optional_list_optional_enum__givenDataWithNonConvertibleTypeElement_getsValueWithUnknownEnumCaseElement() {
@@ -802,31 +818,28 @@ class GraphQLExecutor_SelectionSetMapper_FromResponse_Tests: XCTestCase {
 
   func test__inlineFragment__withoutExplicitTypeNameSelection_selectsTypenameField() throws {
     // given
-    class MockChildObject: Object {
-      override class var __typename: StaticString { "MockChildObject" }
-    }
-
-    class Human: Object {
-      override class var __typename: StaticString { "Human" }
+    struct Types {
+      static let Human = Object(typename: "Human", implementedInterfaces: [])
+      static let MockChildObject = Object(typename: "MockChildObject", implementedInterfaces: [])
     }
 
     class GivenSelectionSet: MockSelectionSet, SelectionSet {
-      typealias Schema = MockSchemaConfiguration
-      override class var __parentType: ParentType { .Object(Object.self) }
+      typealias Schema = MockSchemaMetadata
+      override class var __parentType: ParentType { Object.mock }
       override class var selections: [Selection] {[
         .field("child", Child.self),
       ]}
 
       class Child: MockSelectionSet, SelectionSet {
-        typealias Schema = MockSchemaConfiguration
+        typealias Schema = MockSchemaMetadata
 
-        override class var __parentType: ParentType { .Object(MockChildObject.self) }
+        override class var __parentType: ParentType { Types.MockChildObject }
         override class var selections: [Selection] {[
           .inlineFragment(AsHuman.self)
         ]}
 
         class AsHuman: MockTypeCase {
-          override class var __parentType: ParentType { .Object(Human.self)}
+          override class var __parentType: ParentType { Types.Human }
           override class var selections: [Selection] {[
             .field("name", String.self),
           ]}
@@ -834,10 +847,10 @@ class GraphQLExecutor_SelectionSetMapper_FromResponse_Tests: XCTestCase {
       }
     }
 
-    MockSchemaConfiguration.stub_objectTypeForTypeName =  { typeName in
+    MockSchemaMetadata.stub_objectTypeForTypeName =  { typeName in
       switch typeName {
       case "Human":
-        return Human.self
+        return Types.Human
       default:
         fail()
         return nil
@@ -863,12 +876,12 @@ class GraphQLExecutor_SelectionSetMapper_FromResponse_Tests: XCTestCase {
 
   func test__fragment__asObjectType_matchingParentType_selectsFragmentFields() throws {
     // given
-    class MockChildObject: Object {
-      override class var __typename: StaticString { "MockChildObject" }
+    struct Types {
+      static let MockChildObject = Object(typename: "MockChildObject", implementedInterfaces: [])
     }
 
     class GivenFragment: MockFragment {
-      override class var __parentType: ParentType { .Object(MockChildObject.self) }
+      override class var __parentType: ParentType { Types.MockChildObject }
       override class var selections: [Selection] {[
         .field("child", Child.self)
       ]}
@@ -881,9 +894,9 @@ class GraphQLExecutor_SelectionSetMapper_FromResponse_Tests: XCTestCase {
     }
 
     class GivenSelectionSet: MockSelectionSet, SelectionSet {
-      typealias Schema = MockSchemaConfiguration
+      typealias Schema = MockSchemaMetadata
 
-      override class var __parentType: ParentType { .Object(MockChildObject.self) }
+      override class var __parentType: ParentType { Types.MockChildObject }
       override class var selections: [Selection] {[
         .fragment(GivenFragment.self)
       ]}
@@ -896,7 +909,7 @@ class GraphQLExecutor_SelectionSetMapper_FromResponse_Tests: XCTestCase {
       }
     }
 
-    MockSchemaConfiguration.stub_objectTypeForTypeName =  { _ in return MockChildObject.self }
+    MockSchemaMetadata.stub_objectTypeForTypeName =  { _ in return Types.MockChildObject }
 
     let object: JSONObject = [
       "__typename": "MockChildObject",
@@ -1064,7 +1077,10 @@ class GraphQLExecutor_SelectionSetMapper_FromResponse_Tests: XCTestCase {
 
   func test__booleanCondition_include_typeCase__givenVariableIsTrue_typeCaseMatchesParentType_getsValuesForTypeCaseFields() throws {
     // given
-    class Person: Object {}
+    struct Types {
+      static let Person = Object(typename: "Person", implementedInterfaces: [])
+    }
+
     class GivenSelectionSet: MockSelectionSet {
       override class var selections: [Selection] {[
         .field("__typename", String.self),
@@ -1073,13 +1089,13 @@ class GraphQLExecutor_SelectionSetMapper_FromResponse_Tests: XCTestCase {
       ]}
 
       class AsPerson: MockTypeCase {
-        override class var __parentType: ParentType { .Object(Person.self)}
+        override class var __parentType: ParentType { Types.Person }
         override class var selections: [Selection] {[
           .field("name", String.self),
         ]}
       }
     }
-    MockSchemaConfiguration.stub_objectTypeForTypeName = { _ in Person.self }
+    MockSchemaMetadata.stub_objectTypeForTypeName = { _ in Types.Person }
     let object: JSONObject = ["__typename": "Person",
                               "name": "Luke Skywalker",
                               "id": "1234"]
@@ -1095,7 +1111,10 @@ class GraphQLExecutor_SelectionSetMapper_FromResponse_Tests: XCTestCase {
 
   func test__booleanCondition_include_typeCase__givenVariableIsFalse_typeCaseMatchesParentType_doesNotGetValuesForTypeCaseFields() throws {
     // given
-    class Person: Object {}
+    struct Types {
+      static let Person = Object(typename: "Person", implementedInterfaces: [])
+    }
+
     class GivenSelectionSet: MockSelectionSet {
       override class var selections: [Selection] {[
         .field("__typename", String.self),
@@ -1104,13 +1123,13 @@ class GraphQLExecutor_SelectionSetMapper_FromResponse_Tests: XCTestCase {
       ]}
 
       class AsPerson: MockTypeCase {
-        override class var __parentType: ParentType { .Object(Person.self)}
+        override class var __parentType: ParentType { Types.Person }
         override class var selections: [Selection] {[
           .field("name", String.self),
         ]}
       }
     }
-    MockSchemaConfiguration.stub_objectTypeForTypeName = { _ in Person.self }
+    MockSchemaMetadata.stub_objectTypeForTypeName = { _ in Types.Person }
     let object: JSONObject = ["__typename": "Person",
                               "name": "Luke Skywalker",
                               "id": "1234"]
@@ -1126,7 +1145,10 @@ class GraphQLExecutor_SelectionSetMapper_FromResponse_Tests: XCTestCase {
 
   func test__booleanCondition_include_typeCase__givenVariableIsTrue_typeCaseDoesNotMatchParentType_doesNotGetValuesForTypeCaseFields() throws {
     // given
-    class Person: Object {}
+    struct Types {
+      static let Person = Object(typename: "Person", implementedInterfaces: [])
+    }
+
     class GivenSelectionSet: MockSelectionSet {
       override class var selections: [Selection] {[
         .field("__typename", String.self),
@@ -1135,13 +1157,13 @@ class GraphQLExecutor_SelectionSetMapper_FromResponse_Tests: XCTestCase {
       ]}
 
       class AsPerson: MockTypeCase {
-        override class var __parentType: ParentType { .Object(Person.self)}
+        override class var __parentType: ParentType { Types.Person }
         override class var selections: [Selection] {[
           .field("name", String.self),
         ]}
       }
     }
-    MockSchemaConfiguration.stub_objectTypeForTypeName = { _ in Object.self }
+    MockSchemaMetadata.stub_objectTypeForTypeName = { _ in Object.mock }
     let object: JSONObject = ["__typename": "Person",
                               "name": "Luke Skywalker",
                               "id": "1234"]
@@ -1157,7 +1179,10 @@ class GraphQLExecutor_SelectionSetMapper_FromResponse_Tests: XCTestCase {
 
   func test__booleanCondition_include_singleFieldOnNestedTypeCase__givenVariableIsTrue_typeCaseMatchesParentType_getsValuesForTypeCaseFields() throws {
     // given
-    class Person: Object {}
+    struct Types {
+      static let Person = Object(typename: "Person", implementedInterfaces: [])
+    }
+
     class GivenSelectionSet: MockSelectionSet {
       override class var selections: [Selection] {[
         .field("__typename", String.self),
@@ -1166,13 +1191,13 @@ class GraphQLExecutor_SelectionSetMapper_FromResponse_Tests: XCTestCase {
       ]}
 
       class AsPerson: MockTypeCase {
-        override class var __parentType: ParentType { .Object(Person.self)}
+        override class var __parentType: ParentType { Types.Person }
         override class var selections: [Selection] {[
           .include(if: "variable", .field("name", String.self)),
         ]}
       }
     }
-    MockSchemaConfiguration.stub_objectTypeForTypeName = { _ in Person.self }
+    MockSchemaMetadata.stub_objectTypeForTypeName = { _ in Types.Person }
     let object: JSONObject = ["__typename": "Person",
                               "name": "Luke Skywalker",
                               "id": "1234"]
@@ -1188,7 +1213,10 @@ class GraphQLExecutor_SelectionSetMapper_FromResponse_Tests: XCTestCase {
 
   func test__booleanCondition_include_singleFieldOnNestedTypeCase__givenVariableIsFalse_typeCaseMatchesParentType_getsValuesForTypeCaseFields() throws {
     // given
-    class Person: Object {}
+    struct Types {
+      static let Person = Object(typename: "Person", implementedInterfaces: [])
+    }
+
     class GivenSelectionSet: MockSelectionSet {
       override class var selections: [Selection] {[
         .field("__typename", String.self),
@@ -1197,13 +1225,13 @@ class GraphQLExecutor_SelectionSetMapper_FromResponse_Tests: XCTestCase {
       ]}
 
       class AsPerson: MockTypeCase {
-        override class var __parentType: ParentType { .Object(Person.self)}
+        override class var __parentType: ParentType { Types.Person }
         override class var selections: [Selection] {[
           .include(if: "variable", .field("name", String.self)),
         ]}
       }
     }
-    MockSchemaConfiguration.stub_objectTypeForTypeName = { _ in Person.self }
+    MockSchemaMetadata.stub_objectTypeForTypeName = { _ in Types.Person }
     let object: JSONObject = ["__typename": "Person",
                               "name": "Luke Skywalker",
                               "id": "1234"]
@@ -1219,7 +1247,10 @@ class GraphQLExecutor_SelectionSetMapper_FromResponse_Tests: XCTestCase {
 
   func test__booleanCondition_include_typeCaseOnNamedFragment__givenVariableIsTrue_typeCaseMatchesParentType_getsValuesForTypeCaseFields() throws {
     // given
-    class Person: Object {}
+    struct Types {
+      static let Person = Object(typename: "Person", implementedInterfaces: [])
+    }
+
     class GivenFragment: MockFragment {
       override class var selections: [Selection] {[
         .field("name", String.self),
@@ -1233,13 +1264,13 @@ class GraphQLExecutor_SelectionSetMapper_FromResponse_Tests: XCTestCase {
       ]}
 
       class AsPerson: MockTypeCase {
-        override class var __parentType: ParentType { .Object(Person.self)}
+        override class var __parentType: ParentType { Types.Person }
         override class var selections: [Selection] {[
           .fragment(GivenFragment.self),
         ]}
       }
     }
-    MockSchemaConfiguration.stub_objectTypeForTypeName = { _ in Person.self }
+    MockSchemaMetadata.stub_objectTypeForTypeName = { _ in Types.Person }
     let object: JSONObject = ["__typename": "Person",
                               "name": "Luke Skywalker",
                               "id": "1234"]
@@ -1603,7 +1634,7 @@ class GraphQLExecutor_SelectionSetMapper_FromResponse_Tests: XCTestCase {
       var name: String? { __data["name"] }
     }
 
-    let tests: [(variables: [String: Bool], expectedResult: Bool)] = [      
+    let tests: [(variables: [String: Bool], expectedResult: Bool)] = [
       (["a": true,  "b": false, "c": true,  "d": true,  "e": true],  true),  // a && b && c -> true
       (["a": false, "b": false, "c": true,  "d": false, "e": true],  false), // a is false
       (["a": true,  "b": true,  "c": true,  "d": false, "e": true],  false), // b is true
@@ -1618,7 +1649,7 @@ class GraphQLExecutor_SelectionSetMapper_FromResponse_Tests: XCTestCase {
 
     for test in tests {
       // when
-      let data = try readValues(GivenSelectionSet.self, from: object, variables: test.variables)      
+      let data = try readValues(GivenSelectionSet.self, from: object, variables: test.variables)
 
       // then
       if test.expectedResult {

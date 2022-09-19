@@ -2,7 +2,6 @@ import XCTest
 import Nimble
 @testable import ApolloCodegenLib
 import ApolloCodegenInternalTestHelpers
-import ApolloUtils
 
 class FileGenerator_ResolvePath_Tests: XCTestCase {
   let directoryURL = CodegenTestHelper.outputFolderURL()
@@ -82,6 +81,15 @@ class FileGenerator_ResolvePath_Tests: XCTestCase {
 
   private func resolvePath() -> String {
     subject.resolvePath(forConfig: ApolloCodegen.ConfigurationContext(config: config))
+  }
+
+  var currentWorkingDirectoryPath: String {
+    let path = FileManager.default.currentDirectoryPath
+    if path.isEmpty {
+      return path
+    } else {
+      return path + "/"
+    }
   }
 
   // MARK: - Resolving Schema Path Tests
@@ -1594,7 +1602,7 @@ class FileGenerator_ResolvePath_Tests: XCTestCase {
     let path = "New/Path"
     buildConfig(module: .swiftPackageManager, operations: .absolute(path: path))
 
-    let expected = path + "/Fragments"
+    let expected = currentWorkingDirectoryPath + path + "/Fragments"
 
     // then
     let actual = resolvePath()
@@ -1662,7 +1670,7 @@ class FileGenerator_ResolvePath_Tests: XCTestCase {
     let path = "New/Path"
     buildConfig(module: .embeddedInTarget(name: "MockApplication"), operations: .absolute(path: path))
 
-    let expected = path + "/Fragments"
+    let expected = currentWorkingDirectoryPath + path + "/Fragments"
 
     // then
     let actual = resolvePath()
@@ -1732,7 +1740,7 @@ class FileGenerator_ResolvePath_Tests: XCTestCase {
 
     buildConfig(module: .other, operations: .absolute(path: path))
 
-    let expected = path + "/Fragments"
+    let expected = currentWorkingDirectoryPath + path + "/Fragments"
 
     // then
     let actual = resolvePath()
@@ -1849,7 +1857,7 @@ class FileGenerator_ResolvePath_Tests: XCTestCase {
     let path = "New/Path"
     buildConfig(module: .swiftPackageManager, operations: .absolute(path: path))
 
-    let expected = path + "/Queries"
+    let expected = currentWorkingDirectoryPath + path + "/Queries"
 
     // then
     let actual = resolvePath()
@@ -1867,7 +1875,7 @@ class FileGenerator_ResolvePath_Tests: XCTestCase {
     let path = "New/Path"
     buildConfig(module: .swiftPackageManager, operations: .absolute(path: path))
 
-    let expected = path + "/Mutations"
+    let expected = currentWorkingDirectoryPath + path + "/Mutations"
 
     // then
     let actual = resolvePath()
@@ -1885,7 +1893,7 @@ class FileGenerator_ResolvePath_Tests: XCTestCase {
     let path = "New/Path"
     buildConfig(module: .swiftPackageManager, operations: .absolute(path: path))
 
-    let expected = path + "/Subscriptions"
+    let expected = currentWorkingDirectoryPath + path + "/Subscriptions"
 
     // then
     let actual = resolvePath()
@@ -1996,7 +2004,7 @@ class FileGenerator_ResolvePath_Tests: XCTestCase {
     let path = "New/Path"
     buildConfig(module: .embeddedInTarget(name: "MockApplication"), operations: .absolute(path: path))
 
-    let expected = path + "/Queries"
+    let expected = currentWorkingDirectoryPath + path + "/Queries"
 
     // then
     let actual = resolvePath()
@@ -2014,7 +2022,7 @@ class FileGenerator_ResolvePath_Tests: XCTestCase {
     let path = "New/Path"
     buildConfig(module: .embeddedInTarget(name: "MockApplication"), operations: .absolute(path: path))
 
-    let expected = path + "/Mutations"
+    let expected = currentWorkingDirectoryPath + path + "/Mutations"
 
     // then
     let actual = resolvePath()
@@ -2032,7 +2040,7 @@ class FileGenerator_ResolvePath_Tests: XCTestCase {
     let path = "New/Path"
     buildConfig(module: .embeddedInTarget(name: "MockApplication"), operations: .absolute(path: path))
 
-    let expected = path + "/Subscriptions"
+    let expected = currentWorkingDirectoryPath + path + "/Subscriptions"
 
     // then
     let actual = resolvePath()
@@ -2145,7 +2153,7 @@ class FileGenerator_ResolvePath_Tests: XCTestCase {
 
     buildConfig(module: .other, operations: .absolute(path: path))
 
-    let expected = path + "/Queries"
+    let expected = currentWorkingDirectoryPath + path + "/Queries"
 
     // then
     let actual = resolvePath()
@@ -2164,7 +2172,7 @@ class FileGenerator_ResolvePath_Tests: XCTestCase {
 
     buildConfig(module: .other, operations: .absolute(path: path))
 
-    let expected = path + "/Mutations"
+    let expected = currentWorkingDirectoryPath + path + "/Mutations"
 
     // then
     let actual = resolvePath()
@@ -2183,7 +2191,7 @@ class FileGenerator_ResolvePath_Tests: XCTestCase {
 
     buildConfig(module: .other, operations: .absolute(path: path))
 
-    let expected = path + "/Subscriptions"
+    let expected = currentWorkingDirectoryPath + path + "/Subscriptions"
 
     // then
     let actual = resolvePath()

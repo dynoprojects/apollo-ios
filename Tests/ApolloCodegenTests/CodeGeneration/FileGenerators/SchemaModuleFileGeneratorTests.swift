@@ -2,11 +2,10 @@ import XCTest
 @testable import ApolloCodegenLib
 import ApolloCodegenInternalTestHelpers
 import Nimble
-import ApolloUtils
 
 class SchemaModuleFileGeneratorTests: XCTestCase {
   let rootURL = URL(fileURLWithPath: CodegenTestHelper.outputFolderURL().path)
-  let mockFileManager = MockFileManager(strict: false)
+  let mockFileManager = MockApolloFileManager(strict: false)
 
   override func tearDown() {
     CodegenTestHelper.deleteExistingOutputFolder()
@@ -41,7 +40,7 @@ class SchemaModuleFileGeneratorTests: XCTestCase {
 
   func test__generate__givenModuleType_none_shouldGenerateNamespaceFile() throws {
     // given
-    let fileURL = rootURL.appendingPathComponent("ModuleTestSchema.swift")
+    let fileURL = rootURL.appendingPathComponent("ModuleTestSchema.graphql.swift")
 
     let configuration = ApolloCodegen.ConfigurationContext(config: ApolloCodegenConfiguration.mock(
       .embeddedInTarget(name: "MockApplication"),

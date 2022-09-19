@@ -1,5 +1,4 @@
 import Foundation
-import ApolloUtils
 
 /// Provides the format to convert a [GraphQL Input Object](https://spec.graphql.org/draft/#sec-Input-Objects)
 /// into Swift code.
@@ -11,7 +10,7 @@ struct InputObjectTemplate: TemplateRenderer {
 
   let config: ApolloCodegen.ConfigurationContext
 
-  let target: TemplateTarget = .schemaFile
+  let target: TemplateTarget = .schemaFile(type: .inputObject)
 
   var template: TemplateString {
     let (validFields, deprecatedFields) = filterFields(graphqlInputObject.fields)

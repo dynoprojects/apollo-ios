@@ -1,5 +1,3 @@
-import ApolloUtils
-import Darwin
 import OrderedCollections
 
 extension IR {
@@ -470,7 +468,7 @@ extension IR.EntitySelectionTree.EnclosingEntityNode {
       let fragmentType = fragment.typeInfo.parentType
       let nextNode = nodeRootType == fragmentType ?
       self.childAsEnclosingEntityNode() :
-      self.scopeConditionNode(for: IR.ScopeCondition(type: fragmentType))
+      self.scopeConditionNode(for: IR.ScopeCondition(type: fragmentType)).childAsEnclosingEntityNode()
 
       nextNode.mergeIn(
         otherNextNode,
@@ -634,27 +632,27 @@ extension IR.EntitySelectionTree: CustomDebugStringConvertible {
 
 extension IR.EntitySelectionTree.EnclosingEntityNode: CustomDebugStringConvertible {
   var debugDescription: String {
-    """
+    TemplateString("""
     {
       child:
-        \(indented: child?.debugDescription ?? "nil")
+        \(child?.debugDescription ?? "nil")
       conditionalScopes:
-        \(indented: scopeConditions?.debugDescription ?? "[]")
+        \(scopeConditions?.debugDescription ?? "[]")
     }
-    """
+    """).description
   }
 }
 
 extension IR.EntitySelectionTree.FieldScopeNode: CustomDebugStringConvertible {
   var debugDescription: String {
-    """
+    TemplateString("""
     {
       selections:
-        \(indented: selections.debugDescription)
+        \(selections.debugDescription)
       conditionalScopes:
-        \(indented: scopeConditions?.debugDescription ?? "[]")
+        \(scopeConditions?.debugDescription ?? "[]")
     }
-    """
+    """).description
   }
 }
 

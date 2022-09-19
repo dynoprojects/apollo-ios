@@ -1,6 +1,5 @@
 import Foundation
 import OrderedCollections
-import ApolloUtils
 
 // Only available on macOS
 #if os(macOS)
@@ -14,11 +13,17 @@ public class ApolloCodegen {
   public enum Error: Swift.Error, LocalizedError {
     /// An error occured during validation of the GraphQL schema or operations.
     case graphQLSourceValidationFailure(atLines: [String])
+    case testMocksInvalidSwiftPackageConfiguration
+    case inputSearchPathInvalid(path: String)
 
     public var errorDescription: String? {
       switch self {
       case let .graphQLSourceValidationFailure(lines):
         return "An error occured during validation of the GraphQL schema or operations! Check \(lines)"
+      case .testMocksInvalidSwiftPackageConfiguration:
+        return "Schema Types must be generated with module type 'swiftPackageManager' to generate a swift package for test mocks."
+      case let .inputSearchPathInvalid(path):
+        return "Input search path '\(path)' is invalid. Input search paths must include a file extension component. (eg. '.graphql')"
       }
     }
   }
@@ -26,26 +31,57 @@ public class ApolloCodegen {
   /// Executes the code generation engine with a specified configuration.
   ///
   /// - Parameters:
-  ///   - configuration: A configuration object that specifies inputs, outputs and behaviours used during code generation.
-  public static func build(with configuration: ApolloCodegenConfiguration) throws {
-    try configuration.validate()
+  ///   - configuration: A configuration object that specifies inputs, outputs and behaviours used
+  ///     during code generation.
+  ///   - rootURL: The root `URL` to resolve relative `URL`s in the configuration's paths against.
+  ///     If `nil`, the current working directory of the executing process will be used.
+  public static func build(
+    with configuration: ApolloCodegenConfiguration,
+    withRootURL rootURL: URL? = nil
+  ) throws {
+    try build(with: configuration, rootURL: rootURL)
+  }
 
-    let configContext = ConfigurationContext(config: configuration)
+  internal static func build(
+    with configuration: ApolloCodegenConfiguration,
+    rootURL: URL? = nil,
+    fileManager: ApolloFileManager = .default
+  ) throws {
+    let configContext = ConfigurationContext(
+      config: configuration,
+      rootURL: rootURL
+    )
     let compilationResult = try compileGraphQLResult(
       configContext,
       experimentalFeatures: configuration.experimentalFeatures
     )
+
+    try validate(config: configContext)
 
     let ir = IR(
       schemaName: configContext.schemaName,
       compilationResult: compilationResult
     )
 
+    var existingGeneratedFilePaths = configuration.options.pruneGeneratedFiles ?
+    try findExistingGeneratedFilePaths(
+      config: configContext,
+      fileManager: fileManager
+    ) : []
+
     try generateFiles(
       compilationResult: compilationResult,
       ir: ir,
-      config: configContext
+      config: configContext,
+      fileManager: fileManager
     )
+
+    if configuration.options.pruneGeneratedFiles {
+      try deleteExtraneousGeneratedFiles(
+        from: &existingGeneratedFilePaths,
+        afterCodeGenerationUsing: fileManager
+      )
+    }
   }
 
   // MARK: Internal
@@ -54,14 +90,40 @@ public class ApolloCodegen {
   class ConfigurationContext {
     let config: ApolloCodegenConfiguration
     let pluralizer: Pluralizer
+    let rootURL: URL?
 
-    init(config: ApolloCodegenConfiguration) {
+    init(
+      config: ApolloCodegenConfiguration,
+      rootURL: URL? = nil
+    ) {
       self.config = config
       self.pluralizer = Pluralizer(rules: config.options.additionalInflectionRules)
+      self.rootURL = rootURL?.standardizedFileURL
     }
 
     subscript<T>(dynamicMember keyPath: KeyPath<ApolloCodegenConfiguration, T>) -> T {
       config[keyPath: keyPath]
+    }
+  }
+
+  /// Performs validation against deterministic errors that will cause code generation to fail.
+  static func validate(config: ConfigurationContext) throws {
+    if case .swiftPackage = config.output.testMocks,
+        config.output.schemaTypes.moduleType != .swiftPackageManager {
+      throw Error.testMocksInvalidSwiftPackageConfiguration
+    }
+
+    for searchPath in config.input.schemaSearchPaths {
+      try validate(inputSearchPath: searchPath)
+    }
+    for searchPath in config.input.operationSearchPaths {
+      try validate(inputSearchPath: searchPath)
+    }
+  }
+
+  static private func validate(inputSearchPath: String) throws {
+    guard inputSearchPath.contains(".") && !inputSearchPath.hasSuffix(".") else {
+      throw Error.inputSearchPathInvalid(path: inputSearchPath)
     }
   }
 
@@ -77,7 +139,8 @@ public class ApolloCodegen {
 
     let graphqlErrors = try frontend.validateDocument(
       schema: graphQLSchema,
-      document: operationsDocument
+      document: operationsDocument,
+      options: ValidationOptions(config: config.config)
     )
 
     guard graphqlErrors.isEmpty else {
@@ -97,7 +160,7 @@ public class ApolloCodegen {
     _ config: ConfigurationContext,
     _ frontend: GraphQLJSFrontend
   ) throws -> GraphQLSchema {
-    let matches = try Glob(config.input.schemaSearchPaths).match()
+    let matches = try Glob(config.input.schemaSearchPaths, relativeTo: config.rootURL).match()
     let sources = try matches.map { try frontend.makeSource(from: URL(fileURLWithPath: $0)) }
     return try frontend.loadSchema(from: sources)
   }
@@ -107,7 +170,7 @@ public class ApolloCodegen {
     _ frontend: GraphQLJSFrontend,
     _ experimentalFeatures: ApolloCodegenConfiguration.ExperimentalFeatures
   ) throws -> GraphQLDocument {
-    let matches = try Glob(config.input.operationSearchPaths).match()
+    let matches = try Glob(config.input.operationSearchPaths, relativeTo: config.rootURL).match()
     let documents = try matches.map({ path in
       return try frontend.parseDocument(
         from: URL(fileURLWithPath: path),
@@ -122,7 +185,7 @@ public class ApolloCodegen {
     compilationResult: CompilationResult,
     ir: IR,
     config: ConfigurationContext,
-    fileManager: FileManager = FileManager.default
+    fileManager: ApolloFileManager = .default
   ) throws {
     for fragment in compilationResult.fragments {
       try autoreleasepool {
@@ -194,17 +257,6 @@ public class ApolloCodegen {
           forConfig: config,
           fileManager: fileManager
         )
-
-        if config.output.testMocks != .none {
-          try MockUnionFileGenerator(
-            graphqlUnion: graphQLUnion,
-            ir: ir,
-            config: config
-          ).generate(
-            forConfig: config,
-            fileManager: fileManager
-          )
-        }
       }
     }
 
@@ -228,11 +280,91 @@ public class ApolloCodegen {
       }
     }
 
-    try SchemaFileGenerator(schema: ir.schema, config: config)
+    if config.output.testMocks != .none {
+      try MockUnionsFileGenerator(
+        ir: ir,
+        config: config
+      )?.generate(
+        forConfig: config,
+        fileManager: fileManager
+      )
+      try MockInterfacesFileGenerator(
+        ir: ir,
+        config: config
+      )?.generate(
+        forConfig: config,
+        fileManager: fileManager
+      )
+    }
+
+    try SchemaMetadataFileGenerator(schema: ir.schema, config: config)
+      .generate(forConfig: config, fileManager: fileManager)
+    try SchemaConfigurationFileGenerator(schema: ir.schema, config: config)
       .generate(forConfig: config, fileManager: fileManager)
 
     try SchemaModuleFileGenerator.generate(config, fileManager: fileManager)
   }
+
+  private static func findExistingGeneratedFilePaths(
+    config: ConfigurationContext,
+    fileManager: ApolloFileManager = .default
+  ) throws -> Set<String> {
+    var globs: [Glob] = []
+    globs.append(Glob(
+      ["\(config.output.schemaTypes.path)/**/*.graphql.swift"],
+      relativeTo: config.rootURL
+    ))
+
+    switch config.output.operations {
+    case .inSchemaModule: break
+
+    case let .absolute(operationsPath):
+      globs.append(Glob(
+        ["\(operationsPath)/**/*.graphql.swift"],
+        relativeTo: config.rootURL
+      ))
+
+    case let .relative(subpath):
+      let searchPaths = config.input.operationSearchPaths.map { searchPath -> String in
+        let startOfLastPathComponent = searchPath.lastIndex(of: "/") ?? searchPath.firstIndex(of: ".")!
+        var path = searchPath.prefix(upTo: startOfLastPathComponent)
+        if let subpath = subpath {
+          path += "/\(subpath)"
+        }
+        path += "/*.graphql.swift"
+        return path.description
+      }
+
+      globs.append(Glob(
+        searchPaths,
+        relativeTo: config.rootURL
+      ))
+    }
+
+    switch config.output.testMocks {
+    case let .absolute(testMocksPath):
+      globs.append(Glob(
+        ["\(testMocksPath)/**/*.graphql.swift"],
+        relativeTo: config.rootURL
+      ))
+    default: break
+    }
+
+    return try globs.reduce(into: []) { partialResult, glob in
+      partialResult.formUnion(try glob.match())
+    }
+  }
+
+  static func deleteExtraneousGeneratedFiles(
+    from oldGeneratedFilePaths: inout Set<String>,
+    afterCodeGenerationUsing fileManager: ApolloFileManager
+  ) throws {
+    oldGeneratedFilePaths.subtract(fileManager.writtenFiles)
+    for path in oldGeneratedFilePaths {
+      try fileManager.deleteFile(atPath: path)
+    }
+  }
+
 }
 
 #endif

@@ -6,7 +6,7 @@ public enum Selection {
   /// A fragment spread of a named fragment definition.
   case fragment(Fragment.Type)
   /// An inline fragment with a child selection set nested in a parent selection set.
-  case inlineFragment(ApolloAPI.InlineFragment.Type)
+  case inlineFragment(InlineFragment.Type)
   /// A group of selections that have `@include/@skip` directives.
   case conditional(Conditions, [Selection])
 
@@ -35,8 +35,8 @@ public enum Selection {
     }
 
     public indirect enum OutputType {
-      case scalar(ScalarType.Type)
-      case customScalar(CustomScalarType.Type)
+      case scalar(any ScalarType.Type)
+      case customScalar(any CustomScalarType.Type)
       case object(RootSelectionSet.Type)
       case nonNull(OutputType)
       case list(OutputType)

@@ -1,7 +1,6 @@
 import XCTest
 import Nimble
 @testable import ApolloCodegenLib
-import ApolloUtils
 
 class InterfaceFileGeneratorTests: XCTestCase {
   let graphqlInterface = GraphQLInterfaceType.mock("MockInterface", fields: [:], interfaces: [])
@@ -35,7 +34,7 @@ class InterfaceFileGeneratorTests: XCTestCase {
     // given
     buildSubject()
 
-    let expected = "\(graphqlInterface.name).swift"
+    let expected = graphqlInterface.name
 
     // then
     expect(self.subject.fileName).to(equal(expected))

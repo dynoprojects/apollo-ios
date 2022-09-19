@@ -1,4 +1,4 @@
-// swift-tools-version:5.5
+// swift-tools-version:5.6
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -12,49 +12,37 @@ let package = Package(
     .watchOS(.v5)
   ],
   products: [
-    .library(
-      name: "Apollo",
-      targets: ["Apollo"]),
-    .library(
-      name: "ApolloAPI",
-      targets: ["ApolloAPI"]),
-    .library(
-      name: "ApolloUtils",
-      targets: ["ApolloUtils"]),
-    .library(
-      name: "Apollo-Dynamic",
-      type: .dynamic,
-      targets: ["Apollo"]),
-    .library(
-      name: "ApolloCodegenLib",
-      targets: ["ApolloCodegenLib"]),
-    .library(
-      name: "ApolloSQLite",
-      targets: ["ApolloSQLite"]),
-    .library(
-      name: "ApolloWebSocket",
-      targets: ["ApolloWebSocket"]),
-    .library(
-      name: "ApolloTestSupport",
-      targets: ["ApolloTestSupport"]),
+    .library(name: "Apollo", targets: ["Apollo"]),
+    .library(name: "ApolloAPI", targets: ["ApolloAPI"]),
+    .library(name: "Apollo-Dynamic", type: .dynamic, targets: ["Apollo"]),
+    .library(name: "ApolloCodegenLib", targets: ["ApolloCodegenLib"]),
+    .library(name: "ApolloSQLite", targets: ["ApolloSQLite"]),
+    .library(name: "ApolloWebSocket", targets: ["ApolloWebSocket"]),
+    .library(name: "ApolloTestSupport", targets: ["ApolloTestSupport"]),
+    .executable(name: "apollo-ios-cli", targets: ["apollo-ios-cli"]),
+    .plugin(name: "ApolloCodegenPlugin-Initialize", targets: ["ApolloCodegenPlugin-Initialize"]),
+    .plugin(name: "ApolloCodegenPlugin-Fetch", targets: ["ApolloCodegenPlugin-Fetch"]),
+    .plugin(name: "ApolloCodegenPlugin-Generate", targets: ["ApolloCodegenPlugin-Generate"]),
   ],
   dependencies: [
     .package(
       url: "https://github.com/stephencelis/SQLite.swift.git",
-        .upToNextMinor(from: "0.13.1")),
+      .upToNextMinor(from: "0.13.1")),
     .package(
       url: "https://github.com/mattt/InflectorKit",
       .upToNextMinor(from: "1.0.0")),
     .package(
       url: "https://github.com/apple/swift-collections",
-      .upToNextMajor(from: "1.0.0"))
+      .upToNextMajor(from: "1.0.0")),
+    .package(
+      url: "https://github.com/apple/swift-argument-parser.git",
+      .upToNextMajor(from: "1.1.2")),
   ],
   targets: [
     .target(
       name: "Apollo",
       dependencies: [
-        "ApolloAPI",
-        "ApolloUtils"
+        "ApolloAPI"
       ],
       exclude: [
         "Info.plist"
@@ -66,15 +54,8 @@ let package = Package(
         "Info.plist"
       ]),
     .target(
-      name: "ApolloUtils",
-      dependencies: [],
-      exclude: [
-        "Info.plist"
-      ]),
-    .target(
       name: "ApolloCodegenLib",
       dependencies: [
-        "ApolloUtils",
         .product(name: "InflectorKit", package: "InflectorKit"),
         .product(name: "OrderedCollections", package: "swift-collections")
       ],
@@ -97,17 +78,63 @@ let package = Package(
     .target(
       name: "ApolloWebSocket",
       dependencies: [
-        "Apollo",
-        "ApolloUtils"
+        "Apollo"
       ],
       exclude: [
         "Info.plist"
       ]),
     .target(
       name: "ApolloTestSupport",
-      dependencies: ["ApolloAPI"],
+      dependencies: [
+        "ApolloAPI"
+      ],
       exclude: [
         "Info.plist"
+      ]),
+    .executableTarget(
+      name: "apollo-ios-cli",
+      dependencies: [
+        "CodegenCLI",
+        .product(name: "ArgumentParser", package: "swift-argument-parser"),
+      ],
+      exclude: [
+        "README.md",
+      ]),
+    .target(
+      name: "CodegenCLI",
+      dependencies: [
+        "ApolloCodegenLib",
+        .product(name: "ArgumentParser", package: "swift-argument-parser"),
+      ],
+      exclude: [
+        "Info.plist",
+      ]),
+    .plugin(
+      name: "ApolloCodegenPlugin-Initialize",
+      capability: .command(
+        intent: .custom(
+          verb: "apollo-initialize-codegen-config",
+          description: "Initialize a new code generation configuration with defaults.")),
+      dependencies: [
+        "apollo-ios-cli"
+      ]),
+    .plugin(
+      name: "ApolloCodegenPlugin-Fetch",
+      capability: .command(
+        intent: .custom(
+          verb: "apollo-fetch-schema",
+          description: "Download a GraphQL schema from the Apollo Registry or via GraphQL introspection.")),
+      dependencies: [
+        "apollo-ios-cli"
+      ]),
+    .plugin(
+      name: "ApolloCodegenPlugin-Generate",
+      capability: .command(
+        intent: .custom(
+          verb: "apollo-generate",
+          description: "Generate Swift code for the configured GraphQL schema and operations.")),
+      dependencies: [
+        "apollo-ios-cli"
       ]),
   ]
 )

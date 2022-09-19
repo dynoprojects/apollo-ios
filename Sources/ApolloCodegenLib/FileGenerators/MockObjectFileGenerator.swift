@@ -1,5 +1,4 @@
 import Foundation
-import ApolloUtils
 
 /// Generates a file providing the ability to mock a GraphQLObject for testing purposes.
 struct MockObjectFileGenerator: FileGenerator {
@@ -19,5 +18,5 @@ struct MockObjectFileGenerator: FileGenerator {
   }
 
   var target: FileTarget { .testMock }
-  var fileName: String { "\(graphqlObject.name)+Mock.swift" }
+  var fileName: String { "\(graphqlObject.name)+Mock" }
 }

@@ -2,7 +2,6 @@ import XCTest
 import Nimble
 @testable import ApolloCodegenLib
 import ApolloCodegenInternalTestHelpers
-import ApolloUtils
 
 class OperationFileGeneratorTests: XCTestCase {
   var irOperation: IR.Operation!
@@ -65,7 +64,7 @@ class OperationFileGeneratorTests: XCTestCase {
     // given
     try buildSubject()
 
-    let expected = "\(irOperation.definition.nameWithSuffix).swift"
+    let expected = irOperation.definition.nameWithSuffix
 
     // then
     expect(self.subject.fileName).to(equal(expected))

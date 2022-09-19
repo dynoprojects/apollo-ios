@@ -1,7 +1,7 @@
 {
   "abstract" : [
     {
-      "text" : "No overview available.",
+      "text" : "A protocol for an object used to provide custom configuration for a generated GraphQL schema.",
       "type" : "text"
     }
   ],
@@ -76,6 +76,51 @@
         }
       ],
       "kind" : "declarations"
+    },
+    {
+      "content" : [
+        {
+          "anchor" : "overview",
+          "level" : 2,
+          "text" : "Overview",
+          "type" : "heading"
+        },
+        {
+          "inlineContent" : [
+            {
+              "text" : "A ",
+              "type" : "text"
+            },
+            {
+              "identifier" : "doc:\/\/ApolloAPI\/documentation\/ApolloAPI\/SchemaConfiguration",
+              "isActive" : true,
+              "type" : "reference"
+            },
+            {
+              "text" : " provides an entry point for customizing the cache key resolution",
+              "type" : "text"
+            },
+            {
+              "text" : " ",
+              "type" : "text"
+            },
+            {
+              "text" : "for the types in the schema, which is used by ",
+              "type" : "text"
+            },
+            {
+              "code" : "NormalizedCache",
+              "type" : "codeVoice"
+            },
+            {
+              "text" : " mechanisms.",
+              "type" : "text"
+            }
+          ],
+          "type" : "paragraph"
+        }
+      ],
+      "kind" : "content"
     }
   ],
   "schemaVersion" : {
@@ -89,7 +134,7 @@
   "topicSections" : [
     {
       "identifiers" : [
-        "doc:\/\/ApolloAPI\/documentation\/ApolloAPI\/SchemaConfiguration\/cacheKey(for:)"
+        "doc:\/\/ApolloAPI\/documentation\/ApolloAPI\/SchemaConfiguration\/cacheKeyInfo(for:object:)"
       ],
       "title" : "Type Methods"
     }
@@ -162,7 +207,10 @@
 },
 "doc://ApolloAPI/documentation/ApolloAPI/SchemaConfiguration": {
   "abstract" : [
-
+    {
+      "text" : "A protocol for an object used to provide custom configuration for a generated GraphQL schema.",
+      "type" : "text"
+    }
   ],
   "fragments" : [
     {
@@ -191,9 +239,28 @@
   "type" : "topic",
   "url" : "\/documentation\/apolloapi\/schemaconfiguration"
 },
-"doc://ApolloAPI/documentation/ApolloAPI/SchemaConfiguration/cacheKey(for:)": {
+"doc://ApolloAPI/documentation/ApolloAPI/SchemaConfiguration/cacheKeyInfo(for:object:)": {
   "abstract" : [
-
+    {
+      "text" : "The entry point for configuring the cache key resolution",
+      "type" : "text"
+    },
+    {
+      "text" : " ",
+      "type" : "text"
+    },
+    {
+      "text" : "for the types in the schema, which is used by ",
+      "type" : "text"
+    },
+    {
+      "code" : "NormalizedCache",
+      "type" : "codeVoice"
+    },
+    {
+      "text" : " mechanisms.",
+      "type" : "text"
+    }
   ],
   "fragments" : [
     {
@@ -214,7 +281,7 @@
     },
     {
       "kind" : "identifier",
-      "text" : "cacheKey"
+      "text" : "cacheKeyInfo"
     },
     {
       "kind" : "text",
@@ -223,6 +290,23 @@
     {
       "kind" : "externalParam",
       "text" : "for"
+    },
+    {
+      "kind" : "text",
+      "text" : ": "
+    },
+    {
+      "kind" : "typeIdentifier",
+      "preciseIdentifier" : "s:9ApolloAPI6ObjectV",
+      "text" : "Object"
+    },
+    {
+      "kind" : "text",
+      "text" : ", "
+    },
+    {
+      "kind" : "externalParam",
+      "text" : "object"
     },
     {
       "kind" : "text",
@@ -239,20 +323,21 @@
     },
     {
       "kind" : "typeIdentifier",
-      "preciseIdentifier" : "s:9ApolloAPI14CacheReferenceV",
-      "text" : "CacheReference"
+      "preciseIdentifier" : "s:9ApolloAPI12CacheKeyInfoV",
+      "text" : "CacheKeyInfo"
     },
     {
       "kind" : "text",
       "text" : "?"
     }
   ],
-  "identifier" : "doc:\/\/ApolloAPI\/documentation\/ApolloAPI\/SchemaConfiguration\/cacheKey(for:)",
+  "identifier" : "doc:\/\/ApolloAPI\/documentation\/ApolloAPI\/SchemaConfiguration\/cacheKeyInfo(for:object:)",
   "kind" : "symbol",
+  "required" : true,
   "role" : "symbol",
-  "title" : "cacheKey(for:)",
+  "title" : "cacheKeyInfo(for:object:)",
   "type" : "topic",
-  "url" : "\/documentation\/apolloapi\/schemaconfiguration\/cachekey(for:)"
+  "url" : "\/documentation\/apolloapi\/schemaconfiguration\/cachekeyinfo(for:object:)"
 }
 }
 }

@@ -81,9 +81,7 @@ struct TemplateString: ExpressibleByStringInterpolation, CustomStringConvertible
     private static let whitespaceNotNewline = Set(" \t")
 
     mutating func appendInterpolation(_ string: String) {
-      let indent = String(buffer.reversed().prefix {
-        TemplateString.StringInterpolation.whitespaceNotNewline.contains($0)
-      })
+      let indent = getCurrentIndent()
 
       if indent.isEmpty {
         appendLiteral(string)
@@ -96,11 +94,44 @@ struct TemplateString: ExpressibleByStringInterpolation, CustomStringConvertible
       }
     }
 
+    private func getCurrentIndent() -> String {
+      let reverseBuffer = buffer.reversed()
+      let startOfLine = reverseBuffer.firstIndex(of: "\n") ?? reverseBuffer.endIndex
+      return String(reverseBuffer.prefix(upTo: startOfLine).reversed().prefix {
+        TemplateString.StringInterpolation.whitespaceNotNewline.contains($0)
+      })
+    }
+
+    mutating func appendInterpolation<T>(
+      _ sequence: T,
+      separator: String = ",\n",
+      terminator: String? = nil
+    ) where T: Sequence, T.Element == TemplateString {
+      appendInterpolation(
+        sequence.lazy.map { $0.description },
+        separator: separator,
+        terminator: terminator
+      )
+    }
+
+    @_disfavoredOverload
     mutating func appendInterpolation<T>(
       _ sequence: T,
       separator: String = ",\n",
       terminator: String? = nil
     ) where T: Sequence, T.Element: CustomStringConvertible {
+      appendInterpolation(
+        sequence.lazy.map { $0.description },
+        separator: separator,
+        terminator: terminator
+      )
+    }
+
+    mutating func appendInterpolation<T>(
+      _ sequence: T,
+      separator: String = ",\n",
+      terminator: String? = nil
+    ) where T: LazySequenceProtocol, T.Element: CustomStringConvertible {
       var iterator = sequence.makeIterator()
       guard var elementsString = iterator.next()?.description else {
         removeLineIfEmpty()
@@ -125,6 +156,22 @@ struct TemplateString: ExpressibleByStringInterpolation, CustomStringConvertible
       let shouldWrapInNewlines = list.count > 1
       if shouldWrapInNewlines { appendLiteral("\n  ") }
       appendInterpolation(list, separator: separator, terminator: terminator)
+      if shouldWrapInNewlines { appendInterpolation("\n") }
+    }
+
+    @_disfavoredOverload
+    mutating func appendInterpolation<T>(
+      list: T,
+      separator: String = ",\n",
+      terminator: String? = nil
+    ) where T: Collection, T.Element: CustomDebugStringConvertible {
+      let shouldWrapInNewlines = list.count > 1
+      if shouldWrapInNewlines { appendLiteral("\n  ") }
+      appendInterpolation(
+        list.map { $0.debugDescription },
+        separator: separator,
+        terminator: terminator
+      )
       if shouldWrapInNewlines { appendInterpolation("\n") }
     }
 
@@ -203,17 +250,44 @@ struct TemplateString: ExpressibleByStringInterpolation, CustomStringConvertible
       )
     }
 
+    @_disfavoredOverload
+    mutating func appendInterpolation<T>(
+      ifLet optional: Optional<T>,
+      _ includeBlock: (T) -> TemplateString,
+      else: @autoclosure () -> TemplateString? = nil
+    ) {
+      appendInterpolation(
+        ifLet: optional,
+        where: nil,
+        includeBlock,
+        else: `else`()
+      )
+    }
+
+    mutating func appendInterpolation(
+      comment: String?
+    ) {
+      appendInterpolation(comment: comment, withLinePrefix: "//")
+    }
+
     mutating func appendInterpolation(
       documentation: String?
     ) {
-      guard let documentation = documentation, !documentation.isEmpty else {
+      appendInterpolation(comment: documentation, withLinePrefix: "///")
+    }
+
+    private mutating func appendInterpolation(
+      comment: String?,
+      withLinePrefix prefix: String
+    ) {
+      guard let comment = comment, !comment.isEmpty else {
         removeLineIfEmpty()
         return
       }
 
-      let components = documentation
+      let components = comment
         .split(separator: "\n", omittingEmptySubsequences: false)
-        .joinedAsDocumentationLines()
+        .joinedAsCommentLines(withLinePrefix: prefix)
 
       appendInterpolation(components)
     }
@@ -259,11 +333,11 @@ fileprivate extension Array where Element == Substring {
     return string
   }
 
-  func joinedAsDocumentationLines() -> String {
+  func joinedAsCommentLines(withLinePrefix prefix: String) -> String {
     var string = ""
 
     func add(line: Substring) {
-      string += "///"
+      string += prefix
       if !line.isEmpty {
         string += " "
         string += line
@@ -281,7 +355,20 @@ fileprivate extension Array where Element == Substring {
   }
 }
 
-extension StringProtocol {
-    var firstUppercased: String { prefix(1).uppercased() + dropFirst() }
-    var firstLowercased: String { prefix(1).lowercased() + dropFirst() }
+extension String {
+  var firstUppercased: String {
+    guard let indexToChangeCase = firstIndex(where: \.isCased) else {
+      return self
+    }
+    return prefix(through: indexToChangeCase).uppercased() +
+    suffix(from: index(after: indexToChangeCase))
+  }
+
+  var firstLowercased: String {
+    guard let indexToChangeCase = firstIndex(where: \.isCased) else {
+      return self
+    }
+    return prefix(through: indexToChangeCase).lowercased() +
+    suffix(from: index(after: indexToChangeCase))
+  }
 }

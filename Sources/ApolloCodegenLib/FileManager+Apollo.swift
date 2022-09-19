@@ -1,15 +1,19 @@
 import Foundation
-import CommonCrypto
-#if !COCOAPODS
-import ApolloUtils
-#endif
 
 public typealias FileAttributes = [FileAttributeKey : Any]
 
-/// Enables the `.apollo` extension namespace.
-extension FileManager: ApolloCompatible {}
+public class ApolloFileManager {
 
-extension ApolloExtension where Base: FileManager {
+  public static var `default` = ApolloFileManager(base: FileManager.default)
+
+  /// The paths for the files written to by the ``ApolloFileManager``.
+  public private(set) var writtenFiles: Set<String> = []
+
+  public let base: FileManager
+
+  init(base: FileManager) {
+    self.base = base
+  }
 
   // MARK: Presence
 
@@ -85,6 +89,7 @@ extension ApolloExtension where Base: FileManager {
     guard base.createFile(atPath: path, contents: data, attributes: nil) else {
       throw FileManagerPathError.cannotCreateFile(at: path)
     }
+    writtenFiles.insert(path)
   }
 
   /// Creates the containing directory (including all intermediate directories) for the given file URL if necessary. This method will not

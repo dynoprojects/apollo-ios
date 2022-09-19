@@ -23,10 +23,10 @@ open class MockLocalCacheMutationFromSubscription<SelectionSet: MutableRootSelec
 }
 
 public protocol MockMutableRootSelectionSet: MutableRootSelectionSet
-where Schema == MockSchemaConfiguration {}
+where Schema == MockSchemaMetadata {}
 
 public extension MockMutableRootSelectionSet {
-  static var __parentType: ParentType { .Object(Object.self) }
+  static var __parentType: ParentType { Object.mock }
 
   init() {
     self.init(data: DataDict([:], variables: nil))
@@ -34,4 +34,4 @@ public extension MockMutableRootSelectionSet {
 }
 
 public protocol MockMutableInlineFragment: MutableSelectionSet, InlineFragment
-where Schema == MockSchemaConfiguration {}
+where Schema == MockSchemaMetadata {}

@@ -133,12 +133,11 @@ public class CompilationResult: JavaScriptObject {
     }
 
     public var debugDescription: String {
-      let selectionDescriptions = selections.map(\.debugDescription).joined(separator: "\n")
-      return """
-      ... on \(parentType) {
-        \(indented: selectionDescriptions)
+      TemplateString("""
+      ... on \(parentType.debugDescription) {
+        \(selections.map(\.debugDescription), separator: "\n")
       }
-      """
+      """).description
     }
 
     public func hash(into hasher: inout Hasher) {
@@ -357,7 +356,7 @@ public class CompilationResult: JavaScriptObject {
     public override var debugDescription: String {
       TemplateString("""
       "@\(name)\(ifLet: arguments, {
-          "(\($0.map { "\($0.name): \($0.value)" }, separator: ","))"
+        "(\($0.map { "\($0.name): \(String(describing: $0.value))" }, separator: ","))"
         })
       """).description
     }

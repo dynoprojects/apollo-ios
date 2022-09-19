@@ -4,15 +4,16 @@
 import ApolloTestSupport
 import AnimalKingdomAPI
 
-extension Human: Mockable {
-  public static let __mockFields = MockFields()
-
+public class Human: MockObject {
+  public static let objectType: Object = AnimalKingdomAPI.Objects.Human
+  public static let _mockFields = MockFields()
   public typealias MockValueCollectionType = Array<Mock<Human>>
 
   public struct MockFields {
     @Field<Int>("bodyTemperature") public var bodyTemperature
     @Field<String>("firstName") public var firstName
     @Field<Height>("height") public var height
+    @Field<ID>("id") public var id
     @Field<Bool>("laysEggs") public var laysEggs
     @Field<[Animal]>("predators") public var predators
     @Field<GraphQLEnum<SkinCovering>>("skinCovering") public var skinCovering
@@ -25,6 +26,7 @@ public extension Mock where O == Human {
     bodyTemperature: Int? = nil,
     firstName: String? = nil,
     height: Mock<Height>? = nil,
+    id: ID? = nil,
     laysEggs: Bool? = nil,
     predators: [AnyMock]? = nil,
     skinCovering: GraphQLEnum<SkinCovering>? = nil,
@@ -34,6 +36,7 @@ public extension Mock where O == Human {
     self.bodyTemperature = bodyTemperature
     self.firstName = firstName
     self.height = height
+    self.id = id
     self.laysEggs = laysEggs
     self.predators = predators
     self.skinCovering = skinCovering

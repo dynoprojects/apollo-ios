@@ -1,5 +1,4 @@
 import Foundation
-import ApolloUtils
 import OrderedCollections
 
 /// Representation of an operation that supports Automatic Persisted Queries
@@ -37,9 +36,9 @@ struct OperationIdentifiersTemplate {
     """
     {
       \(try operationIdentifiers.map({ key, value in
-      """
+      String("""
       "\(key)" : \(json: try encoder.encode(value))
-      """}), separator: ",\n")
+      """)}), separator: ",\n")
     }
     """
     )

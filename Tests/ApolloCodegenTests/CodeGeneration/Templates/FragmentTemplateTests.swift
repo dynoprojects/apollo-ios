@@ -2,7 +2,6 @@ import XCTest
 import Nimble
 @testable import ApolloCodegenLib
 import ApolloCodegenInternalTestHelpers
-import ApolloUtils
 
 class FragmentTemplateTests: XCTestCase {
 
@@ -213,7 +212,7 @@ class FragmentTemplateTests: XCTestCase {
     """
 
     let expected = """
-      public static var __parentType: ParentType { .Object(TestSchema.Animal.self) }
+      public static var __parentType: ParentType { TestSchema.Objects.Animal }
     """
 
     // when
@@ -243,7 +242,7 @@ class FragmentTemplateTests: XCTestCase {
     """
 
     let expected = """
-      public static var __parentType: ParentType { .Interface(TestSchema.Animal.self) }
+      public static var __parentType: ParentType { TestSchema.Interfaces.Animal }
     """
 
     // when
@@ -277,7 +276,7 @@ class FragmentTemplateTests: XCTestCase {
     """
 
     let expected = """
-      public static var __parentType: ParentType { .Union(TestSchema.Animal.self) }
+      public static var __parentType: ParentType { TestSchema.Unions.Animal }
     """
 
     // when
@@ -309,7 +308,7 @@ class FragmentTemplateTests: XCTestCase {
       public let __data: DataDict
       public init(data: DataDict) { __data = data }
 
-      public static var __parentType: ParentType { .Object(TestSchema.Animal.self) }
+      public static var __parentType: ParentType { TestSchema.Objects.Animal }
       public static var selections: [Selection] { [
       ] }
     }
@@ -398,7 +397,7 @@ class FragmentTemplateTests: XCTestCase {
       public var __data: DataDict
       public init(data: DataDict) { __data = data }
 
-      public static var __parentType: ParentType { .Object(TestSchema.Query.self) }
+      public static var __parentType: ParentType { TestSchema.Objects.Query }
       public static var selections: [Selection] { [
         .field("allAnimals", [AllAnimal]?.self),
       ] }

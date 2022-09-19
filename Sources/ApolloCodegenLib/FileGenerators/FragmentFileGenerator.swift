@@ -1,5 +1,4 @@
 import Foundation
-import ApolloUtils
 
 /// Generates a file containing the Swift representation of a [GraphQL Fragment](https://spec.graphql.org/draft/#sec-Language.Fragments).
 struct FragmentFileGenerator: FileGenerator {
@@ -16,5 +15,5 @@ struct FragmentFileGenerator: FileGenerator {
     config: config
   ) }
   var target: FileTarget { .fragment(irFragment.definition) }
-  var fileName: String { "\(irFragment.definition.name).swift" }
+  var fileName: String { irFragment.definition.name }
 }

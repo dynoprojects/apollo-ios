@@ -310,7 +310,7 @@ class WatchQueryTests: XCTestCase, CacheDependentTesting {
       }
     }
 
-    MockSchemaConfiguration.stub_cacheKeyProviderForUnknownType = { _, _ in IDCacheKeyProvider.self }
+    MockSchemaMetadata.stub_cacheKeyInfoForType_Object = IDCacheKeyProvider.resolver
 
     let watchedQuery = MockQuery<GivenSelectionSet>()
     watchedQuery.variables = ["episode": "EMPIRE"]
@@ -571,7 +571,7 @@ class WatchQueryTests: XCTestCase, CacheDependentTesting {
         }
       }
     }
-    MockSchemaConfiguration.stub_cacheKeyProviderForUnknownType = { _, _ in IDCacheKeyProvider.self }
+    MockSchemaMetadata.stub_cacheKeyInfoForType_Object = IDCacheKeyProvider.resolver
     
     let watchedQuery = MockQuery<HeroAndFriendsNameSelectionSet>()
     
@@ -716,7 +716,7 @@ class WatchQueryTests: XCTestCase, CacheDependentTesting {
       }
     }
 
-    MockSchemaConfiguration.stub_cacheKeyProviderForUnknownType = { _, _ in IDCacheKeyProvider.self }
+    MockSchemaMetadata.stub_cacheKeyInfoForType_Object = IDCacheKeyProvider.resolver
     
     let watchedQuery = MockQuery<HeroAndFriendsNameWithIDsSelectionSet>()
     
@@ -1066,7 +1066,7 @@ class WatchQueryTests: XCTestCase, CacheDependentTesting {
       }
     }
 
-    MockSchemaConfiguration.stub_cacheKeyProviderForUnknownType = { _, _ in IDCacheKeyProvider.self }
+    MockSchemaMetadata.stub_cacheKeyInfoForType_Object = IDCacheKeyProvider.resolver
 
     let watchedQuery = MockQuery<HeroAndFriendsNamesSelectionSet>()
 
@@ -1251,7 +1251,7 @@ class WatchQueryTests: XCTestCase, CacheDependentTesting {
 
       wait(for: [serverRequestExpectation, otherFetchesCompletedExpectation, updatedWatcherResultExpectation], timeout: 3)
 
-      XCTAssertEqual(updatedWatcherResultExpectation.apollo.numberOfFulfillments, 1)
+      XCTAssertEqual(updatedWatcherResultExpectation.numberOfFulfillments, 1)
     }
   }
 
@@ -1359,7 +1359,7 @@ class WatchQueryTests: XCTestCase, CacheDependentTesting {
 
       wait(for: [serverRequestExpectation, otherFetchesCompletedExpectation, updatedWatcherResultExpectation], timeout: 3)
 
-      XCTAssertEqual(updatedWatcherResultExpectation.apollo.numberOfFulfillments, numberOfFetches)
+      XCTAssertEqual(updatedWatcherResultExpectation.numberOfFulfillments, numberOfFetches)
     }
   }
 
@@ -1427,7 +1427,7 @@ class WatchQueryTests: XCTestCase, CacheDependentTesting {
       }
     }
 
-    MockSchemaConfiguration.stub_cacheKeyProviderForUnknownType = { _, _ in IDCacheKeyProvider.self }
+    MockSchemaMetadata.stub_cacheKeyInfoForType_Object = IDCacheKeyProvider.resolver
 
     typealias HeroAndFriendsNamesWithIDsQuery = MockQuery<HeroAndFriendsNamesWithIDsSelectionSet>
     let watchedQuery = HeroAndFriendsNamesWithIDsQuery()
@@ -1560,7 +1560,8 @@ class WatchQueryTests: XCTestCase, CacheDependentTesting {
         }
       }
     }
-    MockSchemaConfiguration.stub_cacheKeyProviderForUnknownType = { _, _ in IDCacheKeyProvider.self }
+    
+    MockSchemaMetadata.stub_cacheKeyInfoForType_Object = IDCacheKeyProvider.resolver
 
     let watchedQuery = MockQuery<HeroAndFriendsNameWithIDsSelectionSet>()
 
@@ -1709,7 +1710,7 @@ class WatchQueryTests: XCTestCase, CacheDependentTesting {
         }
       }
     }
-    MockSchemaConfiguration.stub_cacheKeyProviderForUnknownType = { _, _ in IDCacheKeyProvider.self }
+    MockSchemaMetadata.stub_cacheKeyInfoForType_Object = IDCacheKeyProvider.resolver
 
     let watchedQuery = MockQuery<HeroAndFriendsNameWithIDsSelectionSet>()
 

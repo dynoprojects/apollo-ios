@@ -1,5 +1,4 @@
 import Foundation
-import ApolloUtils
 
 /// Provides the format to convert a [GraphQL Interface](https://spec.graphql.org/draft/#sec-Interfaces)
 /// into Swift code.
@@ -9,14 +8,12 @@ struct InterfaceTemplate: TemplateRenderer {
 
   let config: ApolloCodegen.ConfigurationContext
 
-  let target: TemplateTarget = .schemaFile
+  let target: TemplateTarget = .schemaFile(type: .interface)
 
   var template: TemplateString {
     """
     \(documentation: graphqlInterface.documentation, config: config)
-    \(embeddedAccessControlModifier)\
-    final class \(graphqlInterface.name.firstUppercased): Interface { }
-
+    static let \(graphqlInterface.name.firstUppercased) = Interface(name: "\(graphqlInterface.name)")
     """
   }
 }

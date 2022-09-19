@@ -2,7 +2,6 @@ import XCTest
 import Nimble
 @testable import ApolloCodegenLib
 import ApolloCodegenInternalTestHelpers
-import ApolloUtils
 
 class SelectionSetTemplateTests: XCTestCase {
 
@@ -110,7 +109,7 @@ class SelectionSetTemplateTests: XCTestCase {
     """
 
     let expected = """
-      public static var __parentType: ParentType { .Object(TestSchema.Animal.self) }
+      public static var __parentType: ParentType { TestSchema.Objects.Animal }
     """
 
     // when
@@ -147,7 +146,7 @@ class SelectionSetTemplateTests: XCTestCase {
     """
 
     let expected = """
-      public static var __parentType: ParentType { .Interface(TestSchema.Animal.self) }
+      public static var __parentType: ParentType { TestSchema.Interfaces.Animal }
     """
 
     // when
@@ -187,7 +186,7 @@ class SelectionSetTemplateTests: XCTestCase {
     """
 
     let expected = """
-      public static var __parentType: ParentType { .Union(TestSchema.Animal.self) }
+      public static var __parentType: ParentType { TestSchema.Unions.Animal }
     """
 
     // when
@@ -240,7 +239,7 @@ class SelectionSetTemplateTests: XCTestCase {
     """
 
     let expected = """
-      public static var __parentType: ParentType { .Object(TestSchema.Nested.self) }
+      public static var __parentType: ParentType { TestSchema.Objects.Nested }
     
     """
 
@@ -379,9 +378,11 @@ class SelectionSetTemplateTests: XCTestCase {
       custom_optional: Custom
       custom_required_list: [Custom!]!
       custom_optional_list: [Custom!]
+      lowercaseCustom: lowercaseCustom!
     }
 
     scalar Custom
+    scalar lowercaseCustom
     """
 
     document = """
@@ -391,6 +392,7 @@ class SelectionSetTemplateTests: XCTestCase {
         custom_optional
         custom_required_list
         custom_optional_list
+        lowercaseCustom
       }
     }
     """
@@ -401,6 +403,7 @@ class SelectionSetTemplateTests: XCTestCase {
         .field("custom_optional", TestSchema.Custom?.self),
         .field("custom_required_list", [TestSchema.Custom].self),
         .field("custom_optional_list", [TestSchema.Custom]?.self),
+        .field("lowercaseCustom", TestSchema.LowercaseCustom.self),
       ] }
     """
 
@@ -410,6 +413,7 @@ class SelectionSetTemplateTests: XCTestCase {
         .field("custom_optional", Custom?.self),
         .field("custom_required_list", [Custom].self),
         .field("custom_optional_list", [Custom]?.self),
+        .field("lowercaseCustom", LowercaseCustom.self),
       ] }
     """
 
@@ -449,6 +453,7 @@ class SelectionSetTemplateTests: XCTestCase {
     type Animal {
       testEnum: TestEnum!
       testEnumOptional: TestEnumOptional
+      lowercaseEnum: lowercaseEnum!
     }
 
     enum TestEnum {
@@ -458,6 +463,10 @@ class SelectionSetTemplateTests: XCTestCase {
     enum TestEnumOptional {
       CASE_ONE
     }
+
+    enum lowercaseEnum {
+      CASE_ONE
+    }
     """
 
     document = """
@@ -465,6 +474,7 @@ class SelectionSetTemplateTests: XCTestCase {
       allAnimals {
         testEnum
         testEnumOptional
+        lowercaseEnum
       }
     }
     """
@@ -473,6 +483,7 @@ class SelectionSetTemplateTests: XCTestCase {
       public static var selections: [Selection] { [
         .field("testEnum", GraphQLEnum<TestEnum>.self),
         .field("testEnumOptional", GraphQLEnum<TestEnumOptional>?.self),
+        .field("lowercaseEnum", GraphQLEnum<LowercaseEnum>.self),
       ] }
     """
 
@@ -480,6 +491,7 @@ class SelectionSetTemplateTests: XCTestCase {
       public static var selections: [Selection] { [
         .field("testEnum", GraphQLEnum<TestSchema.TestEnum>.self),
         .field("testEnumOptional", GraphQLEnum<TestSchema.TestEnumOptional>?.self),
+        .field("lowercaseEnum", GraphQLEnum<TestSchema.LowercaseEnum>.self),
       ] }
     """
 
@@ -585,7 +597,7 @@ class SelectionSetTemplateTests: XCTestCase {
     expect(actual).to(equalLineByLine(expected, atLine: 7, ignoringExtraLines: true))
   }
 
-  func test__render_selections__givenEnitityFieldWithNameNotMatchingType_rendersFieldSelections() throws {
+  func test__render_selections__givenEntityFieldWithNameNotMatchingType_rendersFieldSelections() throws {
     // given
     schemaSDL = """
     type Query {
@@ -594,7 +606,12 @@ class SelectionSetTemplateTests: XCTestCase {
 
     type Animal {
       predator: Animal!
+      lowercaseType: lowercaseType!
       species: String!
+    }
+
+    type lowercaseType {
+      a: String!
     }
     """
 
@@ -604,6 +621,9 @@ class SelectionSetTemplateTests: XCTestCase {
         predator {
           species
         }
+        lowercaseType {
+          a
+        }
       }
     }
     """
@@ -611,6 +631,360 @@ class SelectionSetTemplateTests: XCTestCase {
     let expected = """
       public static var selections: [Selection] { [
         .field("predator", Predator.self),
+        .field("lowercaseType", LowercaseType.self),
+      ] }
+    """
+
+    // when
+    try buildSubjectAndOperation()
+    let allAnimals = try XCTUnwrap(
+      operation[field: "query"]?[field: "allAnimals"] as? IR.EntityField
+    )
+
+    let actual = subject.render(field: allAnimals)
+
+    // then
+    expect(actual).to(equalLineByLine(expected, atLine: 7, ignoringExtraLines: true))
+  }
+
+  // MARK: Selections - Fields - Reserved Keywords & Special Names
+
+  func test__render_selections__givenFieldsWithSwiftReservedKeywordNames_rendersFieldsNotBacktickEscaped() throws {
+    // given
+    schemaSDL = """
+    type Query {
+      allAnimals: [Animal!]
+    }
+
+    type Animal {
+      associatedtype: String!
+      class: String!
+      deinit: String!
+      enum: String!
+      extension: String!
+      fileprivate: String!
+      func: String!
+      import: String!
+      init: String!
+      inout: String!
+      internal: String!
+      let: String!
+      operator: String!
+      private: String!
+      precedencegroup: String!
+      protocol: String!
+      Protocol: String!
+      public: String!
+      rethrows: String!
+      static: String!
+      struct: String!
+      subscript: String!
+      typealias: String!
+      var: String!
+      break: String!
+      case: String!
+      catch: String!
+      continue: String!
+      default: String!
+      defer: String!
+      do: String!
+      else: String!
+      fallthrough: String!
+      guard: String!
+      if: String!
+      in: String!
+      repeat: String!
+      return: String!
+      throw: String!
+      switch: String!
+      where: String!
+      while: String!
+      as: String!
+      false: String!
+      is: String!
+      nil: String!
+      self: String!
+      Self: String!
+      super: String!
+      throws: String!
+      true: String!
+      try: String!
+      _: String!
+    }
+    """
+
+    document = """
+    query TestOperation {
+      allAnimals {
+        associatedtype
+        class
+        deinit
+        enum
+        extension
+        fileprivate
+        func
+        import
+        init
+        inout
+        internal
+        let
+        operator
+        private
+        precedencegroup
+        protocol
+        Protocol
+        public
+        rethrows
+        static
+        struct
+        subscript
+        typealias
+        var
+        break
+        case
+        catch
+        continue
+        default
+        defer
+        do
+        else
+        fallthrough
+        guard
+        if
+        in
+        repeat
+        return
+        throw
+        switch
+        where
+        while
+        as
+        false
+        is
+        nil
+        self
+        Self
+        super
+        throws
+        true
+        try
+        _
+      }
+    }
+    """
+
+    let expected = """
+      public static var selections: [Selection] { [
+        .field("associatedtype", String.self),
+        .field("class", String.self),
+        .field("deinit", String.self),
+        .field("enum", String.self),
+        .field("extension", String.self),
+        .field("fileprivate", String.self),
+        .field("func", String.self),
+        .field("import", String.self),
+        .field("init", String.self),
+        .field("inout", String.self),
+        .field("internal", String.self),
+        .field("let", String.self),
+        .field("operator", String.self),
+        .field("private", String.self),
+        .field("precedencegroup", String.self),
+        .field("protocol", String.self),
+        .field("Protocol", String.self),
+        .field("public", String.self),
+        .field("rethrows", String.self),
+        .field("static", String.self),
+        .field("struct", String.self),
+        .field("subscript", String.self),
+        .field("typealias", String.self),
+        .field("var", String.self),
+        .field("break", String.self),
+        .field("case", String.self),
+        .field("catch", String.self),
+        .field("continue", String.self),
+        .field("default", String.self),
+        .field("defer", String.self),
+        .field("do", String.self),
+        .field("else", String.self),
+        .field("fallthrough", String.self),
+        .field("guard", String.self),
+        .field("if", String.self),
+        .field("in", String.self),
+        .field("repeat", String.self),
+        .field("return", String.self),
+        .field("throw", String.self),
+        .field("switch", String.self),
+        .field("where", String.self),
+        .field("while", String.self),
+        .field("as", String.self),
+        .field("false", String.self),
+        .field("is", String.self),
+        .field("nil", String.self),
+        .field("self", String.self),
+        .field("Self", String.self),
+        .field("super", String.self),
+        .field("throws", String.self),
+        .field("true", String.self),
+        .field("try", String.self),
+        .field("_", String.self),
+      ] }
+    """
+
+    // when
+    try buildSubjectAndOperation()
+    let allAnimals = try XCTUnwrap(
+      operation[field: "query"]?[field: "allAnimals"] as? IR.EntityField
+    )
+
+    let actual = subject.render(field: allAnimals)
+
+    // then
+    expect(actual).to(equalLineByLine(expected, atLine: 7, ignoringExtraLines: true))
+  }
+
+  func test__render_selections__givenEntityFieldWithUnderscorePrefixedName_rendersFieldSelectionsWithTypeFirstUppercased() throws {
+    // given
+    schemaSDL = """
+    type Query {
+      allAnimals: [Animal!]
+    }
+
+    type Animal {
+      _oneUnderscore: Animal!
+      __twoUnderscore: Animal!
+      species: String!
+    }
+    """
+
+    document = """
+    query TestOperation {
+      allAnimals {
+        _oneUnderscore {
+          species
+        }
+        __twoUnderscore {
+          species
+        }
+      }
+    }
+    """
+
+    let expected = """
+      public static var selections: [Selection] { [
+        .field("_oneUnderscore", _OneUnderscore.self),
+        .field("__twoUnderscore", __TwoUnderscore.self),
+      ] }
+    """
+
+    // when
+    try buildSubjectAndOperation()
+    let allAnimals = try XCTUnwrap(
+      operation[field: "query"]?[field: "allAnimals"] as? IR.EntityField
+    )
+
+    let actual = subject.render(field: allAnimals)
+
+    // then
+    expect(actual).to(equalLineByLine(expected, atLine: 7, ignoringExtraLines: true))
+  }
+
+  func test__render_selections__givenEntityFieldWithSwiftKeywordAndApolloReservedTypeNames_rendersFieldSelectionsWithTypeNameSuffixed() throws {
+    // given
+    schemaSDL = """
+    type Query {
+      allAnimals: [Animal!]
+    }
+
+    type Animal {
+      self: Animal!
+      parentType: Animal!
+      dataDict: Animal!
+      selection: Animal!
+      schema: Animal!
+      fragmentContainer: Animal!
+      string: Animal!
+      bool: Animal!
+      int: Animal!
+      float: Animal!
+      double: Animal!
+      iD: Animal!
+      any: Animal!
+      protocol: Animal!
+      type: Animal!
+      species: String!
+    }
+    """
+
+    document = """
+    query TestOperation {
+      allAnimals {
+        self {
+          species
+        }
+        parentType {
+          species
+        }
+        dataDict {
+          species
+        }
+        selection {
+          species
+        }
+        schema {
+          species
+        }
+        fragmentContainer {
+          species
+        }
+        string {
+          species
+        }
+        bool {
+          species
+        }
+        int {
+          species
+        }
+        float {
+          species
+        }
+        double {
+          species
+        }
+        iD {
+          species
+        }
+        any {
+          species
+        }
+        protocol {
+          species
+        }
+        type {
+          species
+        }
+      }
+    }
+    """
+
+    let expected = """
+      public static var selections: [Selection] { [
+        .field("self", Self_SelectionSet.self),
+        .field("parentType", ParentType_SelectionSet.self),
+        .field("dataDict", DataDict_SelectionSet.self),
+        .field("selection", Selection_SelectionSet.self),
+        .field("schema", Schema_SelectionSet.self),
+        .field("fragmentContainer", FragmentContainer_SelectionSet.self),
+        .field("string", String_SelectionSet.self),
+        .field("bool", Bool_SelectionSet.self),
+        .field("int", Int_SelectionSet.self),
+        .field("float", Float_SelectionSet.self),
+        .field("double", Double_SelectionSet.self),
+        .field("iD", ID_SelectionSet.self),
+        .field("any", Any_SelectionSet.self),
+        .field("protocol", Protocol_SelectionSet.self),
+        .field("type", Type_SelectionSet.self),
       ] }
     """
 
@@ -1402,9 +1776,11 @@ class SelectionSetTemplateTests: XCTestCase {
       custom_optional: Custom
       custom_required_list: [Custom!]!
       custom_optional_list: [Custom!]
+      lowercaseScalar: lowercaseScalar!
     }
 
     scalar Custom
+    scalar lowercaseScalar
     """
 
     document = """
@@ -1414,6 +1790,7 @@ class SelectionSetTemplateTests: XCTestCase {
         custom_optional
         custom_required_list
         custom_optional_list
+        lowercaseScalar
       }
     }
     """
@@ -1423,6 +1800,7 @@ class SelectionSetTemplateTests: XCTestCase {
       public var custom_optional: TestSchema.Custom? { __data["custom_optional"] }
       public var custom_required_list: [TestSchema.Custom] { __data["custom_required_list"] }
       public var custom_optional_list: [TestSchema.Custom]? { __data["custom_optional_list"] }
+      public var lowercaseScalar: TestSchema.LowercaseScalar { __data["lowercaseScalar"] }
     """
 
     let expectedNoNamespace = """
@@ -1430,6 +1808,7 @@ class SelectionSetTemplateTests: XCTestCase {
       public var custom_optional: Custom? { __data["custom_optional"] }
       public var custom_required_list: [Custom] { __data["custom_required_list"] }
       public var custom_optional_list: [Custom]? { __data["custom_optional_list"] }
+      public var lowercaseScalar: LowercaseScalar { __data["lowercaseScalar"] }
     """
 
     let tests: [(config: ApolloCodegenConfiguration.FileOutput, expected: String)] = [
@@ -1454,7 +1833,7 @@ class SelectionSetTemplateTests: XCTestCase {
       let actual = subject.render(field: allAnimals)
 
       // then
-      expect(actual).to(equalLineByLine(test.expected, atLine: 14, ignoringExtraLines: true))
+      expect(actual).to(equalLineByLine(test.expected, atLine: 15, ignoringExtraLines: true))
     }
   }
 
@@ -1468,6 +1847,7 @@ class SelectionSetTemplateTests: XCTestCase {
     type Animal {
       testEnum: TestEnum!
       testEnumOptional: TestEnumOptional
+      lowercaseEnum: lowercaseEnum!
     }
 
     enum TestEnum {
@@ -1477,6 +1857,10 @@ class SelectionSetTemplateTests: XCTestCase {
     enum TestEnumOptional {
       CASE_ONE
     }
+
+    enum lowercaseEnum {
+      CASE_ONE
+    }
     """
 
     document = """
@@ -1484,6 +1868,7 @@ class SelectionSetTemplateTests: XCTestCase {
       allAnimals {
         testEnum
         testEnumOptional
+        lowercaseEnum
       }
     }
     """
@@ -1491,11 +1876,13 @@ class SelectionSetTemplateTests: XCTestCase {
     let expectedWithNamespace = """
       public var testEnum: GraphQLEnum<TestSchema.TestEnum> { __data["testEnum"] }
       public var testEnumOptional: GraphQLEnum<TestSchema.TestEnumOptional>? { __data["testEnumOptional"] }
+      public var lowercaseEnum: GraphQLEnum<TestSchema.LowercaseEnum> { __data["lowercaseEnum"] }
     """
 
     let expectedNoNamespace = """
       public var testEnum: GraphQLEnum<TestEnum> { __data["testEnum"] }
       public var testEnumOptional: GraphQLEnum<TestEnumOptional>? { __data["testEnumOptional"] }
+      public var lowercaseEnum: GraphQLEnum<LowercaseEnum> { __data["lowercaseEnum"] }
     """
 
     let tests: [(config: ApolloCodegenConfiguration.FileOutput, expected: String)] = [
@@ -1520,7 +1907,7 @@ class SelectionSetTemplateTests: XCTestCase {
       let actual = subject.render(field: allAnimals)
 
       // then
-      expect(actual).to(equalLineByLine(test.expected, atLine: 12, ignoringExtraLines: true))
+      expect(actual).to(equalLineByLine(test.expected, atLine: 13, ignoringExtraLines: true))
     }
   }
 
@@ -1644,33 +2031,184 @@ class SelectionSetTemplateTests: XCTestCase {
     expect(actual).to(equalLineByLine(expected, atLine: 11, ignoringExtraLines: true))
   }
 
-  // MARK: - Field Accessors - Entity
+  // MARK: Field Accessors - Reserved Keywords + Special Names
 
-  func test__render_fieldAccessors__givenDirectEntityField_rendersFieldAccessor() throws {
+  func test__render_fieldAccessors__givenFieldsWithSwiftReservedKeywordNames_rendersFieldsBacktickEscaped() throws {
     // given
     schemaSDL = """
     type Query {
       allAnimals: [Animal!]
     }
 
-    interface Animal {
-      species: String!
-      predator: Animal!
+    type Animal {
+      associatedtype: String!
+      class: String!
+      deinit: String!
+      enum: String!
+      extension: String!
+      fileprivate: String!
+      func: String!
+      import: String!
+      init: String!
+      inout: String!
+      internal: String!
+      let: String!
+      operator: String!
+      private: String!
+      precedencegroup: String!
+      protocol: String!
+      Protocol: String!
+      public: String!
+      rethrows: String!
+      static: String!
+      struct: String!
+      subscript: String!
+      typealias: String!
+      var: String!
+      break: String!
+      case: String!
+      catch: String!
+      continue: String!
+      default: String!
+      defer: String!
+      do: String!
+      else: String!
+      fallthrough: String!
+      guard: String!
+      if: String!
+      in: String!
+      repeat: String!
+      return: String!
+      throw: String!
+      switch: String!
+      where: String!
+      while: String!
+      as: String!
+      false: String!
+      is: String!
+      nil: String!
+      self: String!
+      Self: String!
+      super: String!
+      throws: String!
+      true: String!
+      try: String!
+      _: String!
     }
     """
 
     document = """
     query TestOperation {
       allAnimals {
-        predator {
-          species
-        }
+        associatedtype
+        class
+        deinit
+        enum
+        extension
+        fileprivate
+        func
+        import
+        init
+        inout
+        internal
+        let
+        operator
+        private
+        precedencegroup
+        protocol
+        Protocol
+        public
+        rethrows
+        static
+        struct
+        subscript
+        typealias
+        var
+        break
+        case
+        catch
+        continue
+        default
+        defer
+        do
+        else
+        fallthrough
+        guard
+        if
+        in
+        repeat
+        return
+        throw
+        switch
+        where
+        while
+        as
+        false
+        is
+        nil
+        self
+        Self
+        super
+        throws
+        true
+        try
       }
     }
     """
 
     let expected = """
-      public var predator: Predator { __data["predator"] }
+      public var `associatedtype`: String { __data["associatedtype"] }
+      public var `class`: String { __data["class"] }
+      public var `deinit`: String { __data["deinit"] }
+      public var `enum`: String { __data["enum"] }
+      public var `extension`: String { __data["extension"] }
+      public var `fileprivate`: String { __data["fileprivate"] }
+      public var `func`: String { __data["func"] }
+      public var `import`: String { __data["import"] }
+      public var `init`: String { __data["init"] }
+      public var `inout`: String { __data["inout"] }
+      public var `internal`: String { __data["internal"] }
+      public var `let`: String { __data["let"] }
+      public var `operator`: String { __data["operator"] }
+      public var `private`: String { __data["private"] }
+      public var `precedencegroup`: String { __data["precedencegroup"] }
+      public var `protocol`: String { __data["protocol"] }
+      public var `protocol`: String { __data["Protocol"] }
+      public var `public`: String { __data["public"] }
+      public var `rethrows`: String { __data["rethrows"] }
+      public var `static`: String { __data["static"] }
+      public var `struct`: String { __data["struct"] }
+      public var `subscript`: String { __data["subscript"] }
+      public var `typealias`: String { __data["typealias"] }
+      public var `var`: String { __data["var"] }
+      public var `break`: String { __data["break"] }
+      public var `case`: String { __data["case"] }
+      public var `catch`: String { __data["catch"] }
+      public var `continue`: String { __data["continue"] }
+      public var `default`: String { __data["default"] }
+      public var `defer`: String { __data["defer"] }
+      public var `do`: String { __data["do"] }
+      public var `else`: String { __data["else"] }
+      public var `fallthrough`: String { __data["fallthrough"] }
+      public var `guard`: String { __data["guard"] }
+      public var `if`: String { __data["if"] }
+      public var `in`: String { __data["in"] }
+      public var `repeat`: String { __data["repeat"] }
+      public var `return`: String { __data["return"] }
+      public var `throw`: String { __data["throw"] }
+      public var `switch`: String { __data["switch"] }
+      public var `where`: String { __data["where"] }
+      public var `while`: String { __data["while"] }
+      public var `as`: String { __data["as"] }
+      public var `false`: String { __data["false"] }
+      public var `is`: String { __data["is"] }
+      public var `nil`: String { __data["nil"] }
+      public var `self`: String { __data["self"] }
+      public var `self`: String { __data["Self"] }
+      public var `super`: String { __data["super"] }
+      public var `throws`: String { __data["throws"] }
+      public var `true`: String { __data["true"] }
+      public var `try`: String { __data["try"] }
     """
 
     // when
@@ -1682,7 +2220,222 @@ class SelectionSetTemplateTests: XCTestCase {
     let actual = subject.render(field: allAnimals)
 
     // then
-    expect(actual).to(equalLineByLine(expected, atLine: 11, ignoringExtraLines: true))
+    expect(actual).to(equalLineByLine(
+      expected,
+      atLine: 10 + allAnimals.selectionSet.selections.direct!.fields.count,
+      ignoringExtraLines: true)
+    )
+  }
+
+  func test__render_fieldAccessors__givenEntityFieldWithUnderscorePrefixedName_rendersFieldWithTypeFirstUppercased() throws {
+    // given
+    schemaSDL = """
+    type Query {
+      allAnimals: [Animal!]
+    }
+
+    type Animal {
+      _oneUnderscore: Animal!
+      __twoUnderscore: Animal!
+      species: String!
+    }
+    """
+
+    document = """
+    query TestOperation {
+      allAnimals {
+        _oneUnderscore {
+          species
+        }
+        __twoUnderscore {
+          species
+        }
+      }
+    }
+    """
+
+    let expected = """
+      public var _oneUnderscore: _OneUnderscore { __data["_oneUnderscore"] }
+      public var __twoUnderscore: __TwoUnderscore { __data["__twoUnderscore"] }
+    """
+
+    // when
+    try buildSubjectAndOperation()
+    let allAnimals = try XCTUnwrap(
+      operation[field: "query"]?[field: "allAnimals"] as? IR.EntityField
+    )
+
+    let actual = subject.render(field: allAnimals)
+
+    // then
+    expect(actual).to(equalLineByLine(
+      expected,
+      atLine: 10 + allAnimals.selectionSet.selections.direct!.fields.count,
+      ignoringExtraLines: true)
+    )
+  }
+
+  func test__render_fieldAccessors__givenEntityFieldWithSwiftKeywordAndApolloReservedTypeNames_rendersFieldAccessorWithTypeNameSuffixed() throws {
+    // given
+    schemaSDL = """
+    type Query {
+      allAnimals: [Animal!]
+    }
+
+    type Animal {
+      self: Animal!
+      parentType: Animal!
+      dataDict: Animal!
+      selection: Animal!
+      schema: Animal!
+      fragmentContainer: Animal!
+      string: Animal!
+      bool: Animal!
+      int: Animal!
+      float: Animal!
+      double: Animal!
+      iD: Animal!
+      any: Animal!
+      protocol: Animal!
+      type: Animal!
+      species: String!
+    }
+    """
+
+    document = """
+    query TestOperation {
+      allAnimals {
+        self {
+          species
+        }
+        parentType {
+          species
+        }
+        dataDict {
+          species
+        }
+        selection {
+          species
+        }
+        schema {
+          species
+        }
+        fragmentContainer {
+          species
+        }
+        string {
+          species
+        }
+        bool {
+          species
+        }
+        int {
+          species
+        }
+        float {
+          species
+        }
+        double {
+          species
+        }
+        iD {
+          species
+        }
+        any {
+          species
+        }
+        protocol {
+          species
+        }
+        type {
+          species
+        }
+      }
+    }
+    """
+
+    let expected = """
+      public var `self`: Self_SelectionSet { __data["self"] }
+      public var parentType: ParentType_SelectionSet { __data["parentType"] }
+      public var dataDict: DataDict_SelectionSet { __data["dataDict"] }
+      public var selection: Selection_SelectionSet { __data["selection"] }
+      public var schema: Schema_SelectionSet { __data["schema"] }
+      public var fragmentContainer: FragmentContainer_SelectionSet { __data["fragmentContainer"] }
+      public var string: String_SelectionSet { __data["string"] }
+      public var bool: Bool_SelectionSet { __data["bool"] }
+      public var int: Int_SelectionSet { __data["int"] }
+      public var float: Float_SelectionSet { __data["float"] }
+      public var double: Double_SelectionSet { __data["double"] }
+      public var iD: ID_SelectionSet { __data["iD"] }
+      public var any: Any_SelectionSet { __data["any"] }
+      public var `protocol`: Protocol_SelectionSet { __data["protocol"] }
+      public var type: Type_SelectionSet { __data["type"] }
+    """
+
+    // when
+    try buildSubjectAndOperation()
+    let allAnimals = try XCTUnwrap(
+      operation[field: "query"]?[field: "allAnimals"] as? IR.EntityField
+    )
+
+    let actual = subject.render(field: allAnimals)
+
+    // then
+    expect(actual).to(equalLineByLine(
+      expected,
+      atLine: 10 + allAnimals.selectionSet.selections.direct!.fields.count,
+      ignoringExtraLines: true)
+    )
+  }
+
+  // MARK: Field Accessors - Entity
+
+  func test__render_fieldAccessors__givenDirectEntityField_rendersFieldAccessor() throws {
+    // given
+    schemaSDL = """
+    type Query {
+      allAnimals: [Animal!]
+    }
+
+    interface Animal {
+      species: String!
+      predator: Animal!
+      lowercaseType: lowercaseType!
+    }
+
+    type lowercaseType {
+      a: String!
+    }
+    """
+
+    document = """
+    query TestOperation {
+      allAnimals {
+        predator {
+          species
+        }
+        lowercaseType {
+          a
+        }
+      }
+    }
+    """
+
+    let expected = """
+      public var predator: Predator { __data["predator"] }
+      public var lowercaseType: LowercaseType { __data["lowercaseType"] }
+    """
+
+    // when
+    try buildSubjectAndOperation()
+    let allAnimals = try XCTUnwrap(
+      operation[field: "query"]?[field: "allAnimals"] as? IR.EntityField
+    )
+
+    let actual = subject.render(field: allAnimals)
+
+    // then
+    expect(actual).to(equalLineByLine(expected, atLine: 12, ignoringExtraLines: true))
   }
 
   func test__render_fieldAccessors__givenDirectEntityFieldWithAlias_rendersFieldAccessor() throws {
@@ -3701,7 +4454,7 @@ class SelectionSetTemplateTests: XCTestCase {
         public let __data: DataDict
         public init(data: DataDict) { __data = data }
 
-        public static var __parentType: ParentType { .Object(TestSchema.Badge.self) }
+        public static var __parentType: ParentType { TestSchema.Objects.Badge }
         public static var selections: [Selection] { [
           .field("a", String?.self),
         ] }
@@ -3714,7 +4467,7 @@ class SelectionSetTemplateTests: XCTestCase {
         public let __data: DataDict
         public init(data: DataDict) { __data = data }
 
-        public static var __parentType: ParentType { .Object(TestSchema.ProductBadge.self) }
+        public static var __parentType: ParentType { TestSchema.Objects.ProductBadge }
         public static var selections: [Selection] { [
           .field("b", String?.self),
         ] }
@@ -3775,7 +4528,7 @@ class SelectionSetTemplateTests: XCTestCase {
         public let __data: DataDict
         public init(data: DataDict) { __data = data }
 
-        public static var __parentType: ParentType { .Object(TestSchema.Badge.self) }
+        public static var __parentType: ParentType { TestSchema.Objects.Badge }
         public static var selections: [Selection] { [
           .field("a", String?.self),
         ] }
@@ -3788,7 +4541,7 @@ class SelectionSetTemplateTests: XCTestCase {
         public let __data: DataDict
         public init(data: DataDict) { __data = data }
 
-        public static var __parentType: ParentType { .Object(TestSchema.ProductBadge.self) }
+        public static var __parentType: ParentType { TestSchema.Objects.ProductBadge }
         public static var selections: [Selection] { [
           .field("b", String?.self),
         ] }
@@ -3915,6 +4668,57 @@ class SelectionSetTemplateTests: XCTestCase {
     }
 
     fragment PredatorDetails on Animal {
+      predator {
+        species
+      }
+    }
+    """
+
+    let expected = """
+      public var predator: PredatorDetails.Predator { __data["predator"] }
+
+      public struct Fragments: FragmentContainer {
+        public let __data: DataDict
+        public init(data: DataDict) { __data = data }
+
+        public var predatorDetails: PredatorDetails { _toFragment() }
+      }
+    }
+    """
+
+    // when
+    try buildSubjectAndOperation()
+    let allAnimals = try XCTUnwrap(
+      operation[field: "query"]?[field: "allAnimals"] as? IR.EntityField
+    )
+
+    let actual = subject.render(field: allAnimals)
+
+    // then
+    expect(actual).to(equalLineByLine(expected, atLine: 11, ignoringExtraLines: true))
+  }
+
+  func test__render_nestedSelectionSet__givenEntityFieldMergedFromFragmentWithLowercaseName_rendersFragmentNestedSelctionSetNameCorrectlyCased() throws {
+    // given
+    schemaSDL = """
+    type Query {
+      allAnimals: [Animal!]
+    }
+
+    interface Animal {
+      species: String!
+      predator: Animal!
+    }
+    """
+
+    document = """
+    query TestOperation {
+      allAnimals {
+        ...predatorDetails
+      }
+    }
+
+    fragment predatorDetails on Animal {
       predator {
         species
       }
@@ -4372,7 +5176,53 @@ class SelectionSetTemplateTests: XCTestCase {
       .to(equalLineByLine(predator_expected, atLine: 20, ignoringExtraLines: true))
   }
 
-  // MARK: Documentation Tests
+  // MARK: Nested Selection Sets - Reserved Keywords + Special Names
+
+  func test__render_nestedSelectionSet__givenEntityFieldWithSwiftKeywordAndApolloReservedTypeNames_rendersSelectionSetWithNameSuffixed() throws {
+    let fieldNames = SwiftKeywords.SelectionSetTypeNamesToSuffix
+    for fieldName in fieldNames {
+      // given
+      schemaSDL = """
+      type Query {
+        allAnimals: [Animal!]
+      }
+
+      interface Animal {
+        species: String!
+        \(fieldName.firstLowercased): Animal!
+      }
+      """
+
+      document = """
+      query TestOperation {
+        allAnimals {
+          \(fieldName.firstLowercased) {
+            species
+          }
+        }
+      }
+      """
+
+      let expected = """
+        /// AllAnimal.\(fieldName.firstUppercased)_SelectionSet
+        public struct \(fieldName.firstUppercased)_SelectionSet: TestSchema.SelectionSet {
+      """
+
+      // when
+      try buildSubjectAndOperation()
+      let allAnimals = try XCTUnwrap(
+        operation[field: "query"]?[field: "allAnimals"] as? IR.EntityField
+      )
+
+      let predator_actual = subject.render(field: allAnimals)
+
+      // then
+      expect(predator_actual)
+        .to(equalLineByLine(expected, atLine: 13, ignoringExtraLines: true))
+    }
+  }
+
+  // MARK: - Documentation Tests
 
   func test__render_nestedSelectionSet__givenSchemaDocumentation_include_hasDocumentation_shouldGenerateDocumentationComment() throws {
     // given

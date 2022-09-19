@@ -1,5 +1,4 @@
 import OrderedCollections
-import ApolloUtils
 
 /// Provides the format to convert a [GraphQL Operation](https://spec.graphql.org/draft/#sec-Language.Operations)
 /// into Swift code.
@@ -66,7 +65,7 @@ struct OperationDefinitionTemplate: OperationTemplateRenderer {
         definition: .init(
           \(operation.source.formatted(for: queryStringLiteralFormat))\(if: includeFragments, ",")
           \(if: includeFragments,
-                            "fragments: [\(fragments.map { "\($0.name).self" }, separator: ", ")]")
+                            "fragments: [\(fragments.map { "\($0.name.firstUppercased).self" }, separator: ", ")]")
         ))
       """,
       else: """

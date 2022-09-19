@@ -1,7 +1,6 @@
 import XCTest
 import Nimble
 @testable import ApolloCodegenLib
-import ApolloUtils
 
 class UnionFileGeneratorTests: XCTestCase {
   let graphqlUnion = GraphQLUnionType.mock("MockUnion", types: [])
@@ -36,7 +35,7 @@ class UnionFileGeneratorTests: XCTestCase {
     // given
     buildSubject()
 
-    let expected = "\(graphqlUnion.name).swift"
+    let expected = graphqlUnion.name
 
     // then
     expect(self.subject.fileName).to(equal(expected))

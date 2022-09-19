@@ -1,12 +1,22 @@
 import Foundation
 
 extension String: JSONDecodable, JSONEncodable {
+  /// The ``JSONDecodable`` initializer for a `String`.
+  ///
+  /// This initializer will accept a `jsonValue` of a `String`, `Int` or `Double`.
+  /// This allows for conversion of custom scalars that are represented as any of these types to
+  /// convert using the default custom scalar typealias of `String`.
+  ///
+  /// # See Also
+  /// ``CustomScalarType``
   @inlinable public init(jsonValue value: JSONValue) throws {
     switch value.base {
     case let string as String:
         self = string
     case let int as Int:
       self = String(int)
+    case let int64 as Int64:
+      self = String(int64)
     case let double as Double:
       self = String(double)
     default:
@@ -127,12 +137,10 @@ extension JSONEncodableDictionary: JSONEncodable {
   }
 }
 
-// Once [conditional conformances](https://github.com/apple/swift-evolution/blob/master/proposals/0143-conditional-conformances.md) have been implemented, we should be able to replace these runtime type checks with proper static typing
-
-extension Dictionary: JSONDecodable where Key == String {
+extension JSONObject: JSONDecodable {
   @inlinable public init(jsonValue value: JSONValue) throws {
-    guard let dictionary = value as? Dictionary else {
-      throw JSONDecodingError.couldNotConvert(value: value, to: Dictionary.self)
+    guard let dictionary = value as? JSONObject else {
+      throw JSONDecodingError.couldNotConvert(value: value, to: JSONObject.self)
     }
 
     self = dictionary

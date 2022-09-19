@@ -1,5 +1,4 @@
 import Foundation
-import ApolloUtils
 
 /// Provides the format to define a Swift Package Manager module in Swift code. The output must
 /// conform to the [configuration definition of a Swift package](https://docs.swift.org/package-manager/PackageDescription/PackageDescription.html#).
@@ -35,7 +34,7 @@ struct SwiftPackageManagerModuleTemplate: TemplateRenderer {
         .library(name: "\(casedModuleName)", targets: ["\(casedModuleName)"]),
       ],
       dependencies: [
-        .package(url: "https://github.com/apollographql/apollo-ios.git", from: "1.0.0-beta.1"),
+        .package(url: "https://github.com/apollographql/apollo-ios.git", from: "1.0.0-beta.4"),
       ],
       targets: [
         .target(

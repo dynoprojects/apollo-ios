@@ -1,11 +1,11 @@
 import Foundation
-import ApolloUtils
 
 // MARK: FileGenerator (protocol and extension)
 
 /// The methods to conform to when building a code generation Swift file generator.
 protocol FileGenerator {
   var fileName: String { get }
+  var fileExtension: String { get }
   var overwrite: Bool { get }
   var template: TemplateRenderer { get }
   var target: FileTarget { get }
@@ -13,23 +13,26 @@ protocol FileGenerator {
 
 extension FileGenerator {
   var overwrite: Bool { true }
+  var fileExtension: String { overwrite ? "graphql.swift" : "swift" }
 
   /// Generates the file writing the template content to the specified config output paths.
   ///
   /// - Parameters:
   ///   - config: Shared codegen configuration.
-  ///   - fileManager: The `FileManager` object used to create the file. Defaults to `FileManager.default`.
+  ///   - fileManager: The `ApolloFileManager` object used to create the file. Defaults to `ApolloFileManager.default`.
   func generate(
     forConfig config: ApolloCodegen.ConfigurationContext,
-    fileManager: FileManager = FileManager.default
+    fileManager: ApolloFileManager = .default
   ) throws {
     let directoryPath = target.resolvePath(forConfig: config)
     let filePath = URL(fileURLWithPath: directoryPath)
-      .appendingPathComponent(fileName.firstUppercased).path
+      .appendingPathComponent(fileName.firstUppercased)
+      .appendingPathExtension(fileExtension)
+      .path
 
     let rendered: String = template.render()
 
-    try fileManager.apollo.createFile(
+    try fileManager.createFile(
       atPath: filePath,
       data: rendered.data(using: .utf8),
       overwrite: self.overwrite
@@ -112,7 +115,9 @@ enum FileTarget: Equatable {
       moduleSubpath += "Schema/"
     }
 
-    return URL(fileURLWithPath: config.output.schemaTypes.path)
+    let base = URL(fileURLWithPath: config.output.schemaTypes.path, relativeTo: config.rootURL)
+
+    return base
       .appendingPathComponent("\(moduleSubpath)\(subpath)").standardizedFileURL.path
   }
 
@@ -122,7 +127,7 @@ enum FileTarget: Equatable {
   ) -> String {
     switch config.output.operations {
     case .inSchemaModule:
-      var url = URL(fileURLWithPath: config.output.schemaTypes.path)
+      var url = URL(fileURLWithPath: config.output.schemaTypes.path, relativeTo: config.rootURL)
       if config.output.schemaTypes.moduleType == .swiftPackageManager {
         url = url.appendingPathComponent("Sources")
       }
@@ -130,7 +135,8 @@ enum FileTarget: Equatable {
       return url.appendingPathComponent(subpath).path
 
     case let .absolute(path):
-      return "\(path)/\(subpath)"
+      return URL(fileURLWithPath: path, relativeTo: config.rootURL)
+        .appendingPathComponent(subpath).path
 
     case let .relative(subpath):
       return resolveRelativePath(
@@ -156,7 +162,7 @@ enum FileTarget: Equatable {
   ) -> String {
     switch config.output.operations {
     case .inSchemaModule:
-      var url = URL(fileURLWithPath: config.output.schemaTypes.path)
+      var url = URL(fileURLWithPath: config.output.schemaTypes.path, relativeTo: config.rootURL)
       if config.output.schemaTypes.moduleType == .swiftPackageManager {
         url = url.appendingPathComponent("Sources")
       }
@@ -169,7 +175,8 @@ enum FileTarget: Equatable {
         .path
 
     case let .absolute(path):
-      return "\(path)/\(subpath)"
+      return URL(fileURLWithPath: path, relativeTo: config.rootURL)
+        .appendingPathComponent(subpath).path
 
     case let .relative(subpath):
       return resolveRelativePath(
@@ -186,9 +193,10 @@ enum FileTarget: Equatable {
     case .none:
       return ""
     case let .swiftPackage(targetName):
-      return "\(config.output.schemaTypes.path)/\(targetName ?? "TestMocks")"
+      return URL(fileURLWithPath: config.output.schemaTypes.path, relativeTo: config.rootURL)
+        .appendingPathComponent(targetName ?? "TestMocks").path
     case let .absolute(path):
-      return path
+      return URL(fileURLWithPath: path, relativeTo: config.rootURL).path
     }
   }
 }

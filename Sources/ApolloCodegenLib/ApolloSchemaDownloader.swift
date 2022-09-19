@@ -44,10 +44,15 @@ public struct ApolloSchemaDownloader {
   ///
   /// - Parameters:
   ///   - configuration: The `ApolloSchemaDownloadConfiguration` used to download the schema.
+  ///   - rootURL: The root `URL` to resolve relative `URL`s in the configuration's paths against.
+  ///     If `nil`, the current working directory of the executing process will be used.
   /// - Returns: Output from a successful fetch or throws an error.
   /// - Throws: Any error which occurs during the fetch.
-  public static func fetch(configuration: ApolloSchemaDownloadConfiguration) throws {
-    try FileManager.default.apollo.createContainingDirectoryIfNeeded(
+  public static func fetch(
+    configuration: ApolloSchemaDownloadConfiguration,
+    withRootURL rootURL: URL? = nil
+  ) throws {
+    try ApolloFileManager.default.createContainingDirectoryIfNeeded(
       forPath: configuration.outputPath
     )
 
@@ -62,7 +67,8 @@ public struct ApolloSchemaDownloader {
     case .apolloRegistry(let settings):
       try self.downloadFrom(
         registry: settings,
-        configuration: configuration
+        configuration: configuration,
+        withRootURL: rootURL
       )
     }
   }
@@ -106,13 +112,13 @@ public struct ApolloSchemaDownloader {
 
   static func downloadFrom(
     registry: ApolloSchemaDownloadConfiguration.DownloadMethod.ApolloRegistrySettings,
-    configuration: ApolloSchemaDownloadConfiguration
+    configuration: ApolloSchemaDownloadConfiguration,
+    withRootURL rootURL: URL?
   ) throws {
     CodegenLogger.log("Downloading schema from registry", logLevel: .debug)
 
     let urlRequest = try registryRequest(with: registry, headers: configuration.headers)
-    let jsonOutputURL = URL(fileURLWithPath: configuration.outputPath)
-      .apollo
+    let jsonOutputURL = URL(fileURLWithPath: configuration.outputPath, relativeTo: rootURL)
       .parentFolderURL()
       .appendingPathComponent("registry_response.json")
 
@@ -124,7 +130,8 @@ public struct ApolloSchemaDownloader {
 
     try self.convertFromRegistryJSONToSDLFile(
       jsonFileURL: jsonOutputURL,
-      configuration: configuration
+      configuration: configuration,
+      withRootURL: rootURL
     )
 
     CodegenLogger.log("Successfully downloaded schema from registry", logLevel: .debug)
@@ -165,7 +172,8 @@ public struct ApolloSchemaDownloader {
 
   static func convertFromRegistryJSONToSDLFile(
     jsonFileURL: URL,
-    configuration: ApolloSchemaDownloadConfiguration
+    configuration: ApolloSchemaDownloadConfiguration,
+    withRootURL rootURL: URL?
   ) throws {
     let jsonData: Data
 
@@ -201,7 +209,7 @@ public struct ApolloSchemaDownloader {
       throw SchemaDownloadError.couldNotCreateSDLDataToWrite(schema: sdlSchema)
     }
 
-    let outputURL = URL(fileURLWithPath: configuration.outputPath)
+    let outputURL = URL(fileURLWithPath: configuration.outputPath, relativeTo: rootURL)
     try sdlData.write(to: outputURL)
   }
 
@@ -316,7 +324,6 @@ public struct ApolloSchemaDownloader {
     let jsonOutputURL: URL = {
       switch configuration.outputFormat {
       case .SDL: return URL(fileURLWithPath: configuration.outputPath)
-          .apollo
           .parentFolderURL()
           .appendingPathComponent("introspection_response.json")
 

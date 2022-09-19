@@ -1,5 +1,4 @@
 import Foundation
-import ApolloUtils
 
 struct MockObjectTemplate: TemplateRenderer {
   /// IR representation of source [GraphQL Object](https://spec.graphql.org/draft/#sec-Objects).
@@ -12,7 +11,9 @@ struct MockObjectTemplate: TemplateRenderer {
   let target: TemplateTarget = .testMockFile
 
   typealias TemplateField = (
-    name: String,
+    responseKey: String,
+    propertyName: String,
+    initializerParameterName: String?,
     type: String,
     mockType: String,
     deprecationReason: String?
@@ -24,7 +25,9 @@ struct MockObjectTemplate: TemplateRenderer {
       .collectedFields(for: graphqlObject)
       .map {
         (
-          name: $0.0,
+          responseKey: $0.0,
+          propertyName: $0.0.asTestMockFieldPropertyName,
+          initializerParameterName: $0.0.asTestMockInitializerParameterName,
           type: $0.1.rendered(as: .testMockField(forceNonNull: true), config: config.config),
           mockType: mockTypeName(for: $0.1),
           deprecationReason: $0.deprecationReason
@@ -32,13 +35,11 @@ struct MockObjectTemplate: TemplateRenderer {
       }
 
     return """
-    extension \
-    \(schemaModuleName)\
-    \(objectName): Mockable {
-      public static let __mockFields = MockFields()
+    public class \(objectName): MockObject {
+      public static let objectType: Object = \(config.schemaName).Objects.\(objectName)
+      public static let _mockFields = MockFields()
+      public typealias MockValueCollectionType = Array<Mock<\(objectName)>>
 
-      public typealias MockValueCollectionType = Array<Mock<\(schemaModuleName)\(objectName)>>
-    
       public struct MockFields {
         \(fields.map {
           TemplateString("""
@@ -46,30 +47,24 @@ struct MockObjectTemplate: TemplateRenderer {
             where: config.options.warningsOnDeprecatedUsage == .include, {
               "@available(*, deprecated, message: \"\($0)\")"
             })
-          @Field<\($0.type)>("\($0.name)") public var \($0.name)
+          @Field<\($0.type)>("\($0.responseKey)") public var \($0.propertyName)
           """)
         }, separator: "\n")
       }
     }
 
-    public extension Mock where O == \(schemaModuleName)\(objectName) {
+    public extension Mock where O == \(objectName) {
       convenience init(
-        \(fields.map { "\($0.name): \($0.mockType)? = nil" }, separator: ",\n")
+        \(fields.map { """
+          \($0.propertyName)\(ifLet: $0.initializerParameterName, {" \($0)"}): \($0.mockType)? = nil
+          """ }, separator: ",\n")
       ) {
         self.init()
-        \(fields.map { "self.\($0.name) = \($0.name)" }, separator: "\n")
+        \(fields.map { "self.\($0.propertyName) = \($0.initializerParameterName ?? $0.propertyName)" }, separator: "\n")
       }
     }
     
     """
-  }
-
-  private var schemaModuleName: String {
-    if !config.output.schemaTypes.isInModule {
-      return "\(config.schemaName)."
-    } else {
-      return ""
-    }
   }
 
   private func mockTypeName(for type: GraphQLType) -> String {
@@ -81,7 +76,7 @@ struct MockObjectTemplate: TemplateRenderer {
         case is GraphQLInterfaceType, is GraphQLUnionType:
           mockType = "AnyMock"
         default:
-          mockType = "Mock<\(schemaModuleName)\(graphQLCompositeType.name)>"
+          mockType = "Mock<\(graphQLCompositeType.name.firstUppercased)>"
         }
         return TemplateString("\(mockType)\(if: !forceNonNull, "?")").description
       case .scalar,

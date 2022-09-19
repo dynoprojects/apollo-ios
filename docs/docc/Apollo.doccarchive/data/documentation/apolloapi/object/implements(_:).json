@@ -1,7 +1,16 @@
 {
   "abstract" : [
     {
-      "text" : "No overview available.",
+      "text" : "A helper function to determine if the receiver implements a given ",
+      "type" : "text"
+    },
+    {
+      "identifier" : "doc:\/\/ApolloAPI\/documentation\/ApolloAPI\/Interface",
+      "isActive" : true,
+      "type" : "reference"
+    },
+    {
+      "text" : " Type.",
       "type" : "text"
     }
   ],
@@ -19,16 +28,8 @@
   },
   "kind" : "symbol",
   "metadata" : {
-    "externalID" : "s:9ApolloAPI6ObjectC10implementsySbAA9InterfaceCmFZ",
+    "externalID" : "s:9ApolloAPI6ObjectV10implementsySbAA9InterfaceVF",
     "fragments" : [
-      {
-        "kind" : "keyword",
-        "text" : "class"
-      },
-      {
-        "kind" : "text",
-        "text" : " "
-      },
       {
         "kind" : "keyword",
         "text" : "func"
@@ -47,12 +48,12 @@
       },
       {
         "kind" : "typeIdentifier",
-        "preciseIdentifier" : "s:9ApolloAPI9InterfaceC",
+        "preciseIdentifier" : "s:9ApolloAPI9InterfaceV",
         "text" : "Interface"
       },
       {
         "kind" : "text",
-        "text" : ".Type) -> "
+        "text" : ") -> "
       },
       {
         "kind" : "typeIdentifier",
@@ -66,7 +67,7 @@
       }
     ],
     "role" : "symbol",
-    "roleHeading" : "Type Method",
+    "roleHeading" : "Instance Method",
     "symbolKind" : "method",
     "title" : "implements(_:)"
   },
@@ -81,22 +82,6 @@
             "macOS"
           ],
           "tokens" : [
-            {
-              "kind" : "keyword",
-              "text" : "final"
-            },
-            {
-              "kind" : "text",
-              "text" : " "
-            },
-            {
-              "kind" : "keyword",
-              "text" : "class"
-            },
-            {
-              "kind" : "text",
-              "text" : " "
-            },
             {
               "kind" : "keyword",
               "text" : "func"
@@ -132,12 +117,12 @@
             {
               "identifier" : "doc:\/\/ApolloAPI\/documentation\/ApolloAPI\/Interface",
               "kind" : "typeIdentifier",
-              "preciseIdentifier" : "s:9ApolloAPI9InterfaceC",
+              "preciseIdentifier" : "s:9ApolloAPI9InterfaceV",
               "text" : "Interface"
             },
             {
               "kind" : "text",
-              "text" : ".Type) -> "
+              "text" : ") -> "
             },
             {
               "kind" : "typeIdentifier",
@@ -148,6 +133,71 @@
         }
       ],
       "kind" : "declarations"
+    },
+    {
+      "content" : [
+        {
+          "anchor" : "return-value",
+          "level" : 2,
+          "text" : "Return Value",
+          "type" : "heading"
+        },
+        {
+          "inlineContent" : [
+            {
+              "text" : "A ",
+              "type" : "text"
+            },
+            {
+              "code" : "Bool",
+              "type" : "codeVoice"
+            },
+            {
+              "text" : " indicating if the receiver implements the given ",
+              "type" : "text"
+            },
+            {
+              "identifier" : "doc:\/\/ApolloAPI\/documentation\/ApolloAPI\/Interface",
+              "isActive" : true,
+              "type" : "reference"
+            },
+            {
+              "text" : " Type.",
+              "type" : "text"
+            }
+          ],
+          "type" : "paragraph"
+        }
+      ],
+      "kind" : "content"
+    },
+    {
+      "kind" : "parameters",
+      "parameters" : [
+        {
+          "content" : [
+            {
+              "inlineContent" : [
+                {
+                  "text" : "An ",
+                  "type" : "text"
+                },
+                {
+                  "identifier" : "doc:\/\/ApolloAPI\/documentation\/ApolloAPI\/Interface",
+                  "isActive" : true,
+                  "type" : "reference"
+                },
+                {
+                  "text" : " Type",
+                  "type" : "text"
+                }
+              ],
+              "type" : "paragraph"
+            }
+          ],
+          "name" : "interface"
+        }
+      ]
     }
   ],
   "schemaVersion" : {
@@ -226,12 +276,23 @@
 },
 "doc://ApolloAPI/documentation/ApolloAPI/Interface": {
   "abstract" : [
-
+    {
+      "text" : "Represents an ",
+      "type" : "text"
+    },
+    {
+      "code" : "interface",
+      "type" : "codeVoice"
+    },
+    {
+      "text" : " type in a generated GraphQL schema.",
+      "type" : "text"
+    }
   ],
   "fragments" : [
     {
       "kind" : "keyword",
-      "text" : "class"
+      "text" : "struct"
     },
     {
       "kind" : "text",
@@ -257,12 +318,23 @@
 },
 "doc://ApolloAPI/documentation/ApolloAPI/Object": {
   "abstract" : [
-
+    {
+      "text" : "Represents an object ",
+      "type" : "text"
+    },
+    {
+      "code" : "type",
+      "type" : "codeVoice"
+    },
+    {
+      "text" : " in a generated GraphQL schema.",
+      "type" : "text"
+    }
   ],
   "fragments" : [
     {
       "kind" : "keyword",
-      "text" : "class"
+      "text" : "struct"
     },
     {
       "kind" : "text",
@@ -288,17 +360,21 @@
 },
 "doc://ApolloAPI/documentation/ApolloAPI/Object/implements(_:)": {
   "abstract" : [
-
+    {
+      "text" : "A helper function to determine if the receiver implements a given ",
+      "type" : "text"
+    },
+    {
+      "identifier" : "doc:\/\/ApolloAPI\/documentation\/ApolloAPI\/Interface",
+      "isActive" : true,
+      "type" : "reference"
+    },
+    {
+      "text" : " Type.",
+      "type" : "text"
+    }
   ],
   "fragments" : [
-    {
-      "kind" : "keyword",
-      "text" : "class"
-    },
-    {
-      "kind" : "text",
-      "text" : " "
-    },
     {
       "kind" : "keyword",
       "text" : "func"
@@ -317,12 +393,12 @@
     },
     {
       "kind" : "typeIdentifier",
-      "preciseIdentifier" : "s:9ApolloAPI9InterfaceC",
+      "preciseIdentifier" : "s:9ApolloAPI9InterfaceV",
       "text" : "Interface"
     },
     {
       "kind" : "text",
-      "text" : ".Type) -> "
+      "text" : ") -> "
     },
     {
       "kind" : "typeIdentifier",

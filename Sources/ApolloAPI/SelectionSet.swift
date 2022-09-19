@@ -1,7 +1,7 @@
 // MARK: - Type Erased SelectionSets
 
 public protocol AnySelectionSet: SelectionSetEntityValue {
-  static var schema: SchemaConfiguration.Type { get }
+  static var schema: SchemaMetadata.Type { get }
 
   static var selections: [Selection] { get }
 
@@ -10,8 +10,13 @@ public protocol AnySelectionSet: SelectionSetEntityValue {
   /// This may be a concrete type (`Object`) or an abstract type (`Interface`, or `Union`).
   static var __parentType: ParentType { get }
 
+  /// The data of the underlying GraphQL object represented by generated selection set.
   var __data: DataDict { get }
 
+  /// Designated Initializer
+  /// 
+  /// - Parameter data: The data of the underlying GraphQL object represented by generated
+  /// selection set.
   init(data: DataDict)
 }
 
@@ -50,7 +55,7 @@ public protocol InlineFragment: AnySelectionSet { }
 
 // MARK: - SelectionSet
 public protocol SelectionSet: AnySelectionSet, Hashable {
-  associatedtype Schema: SchemaConfiguration
+  associatedtype Schema: SchemaMetadata
 
   /// A type representing all of the fragments the `SelectionSet` can be converted to.
   /// Defaults to a stub type with no fragments.
@@ -60,9 +65,9 @@ public protocol SelectionSet: AnySelectionSet, Hashable {
 
 extension SelectionSet {
 
-  @inlinable public static var schema: SchemaConfiguration.Type { Schema.self }
+  @inlinable public static var schema: SchemaMetadata.Type { Schema.self }
 
-  @usableFromInline var __objectType: Object.Type? { Schema.objectType(forTypename: __typename) }
+  @usableFromInline var __objectType: Object? { Schema.objectType(forTypename: __typename) }
 
   @inlinable public var __typename: String { __data["__typename"] }
 
@@ -84,7 +89,7 @@ extension SelectionSet {
 
   @usableFromInline func _asType<T: SelectionSet>() -> T? where T.Schema == Schema {
     guard let __objectType = __objectType,
-          __objectType._canBeConverted(to: T.__parentType) else { return nil }
+          T.__parentType.canBeConverted(from: __objectType) else { return nil }
 
     return T.init(data: __data)
   }

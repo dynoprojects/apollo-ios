@@ -1,5 +1,4 @@
 import Foundation
-import ApolloUtils
 
 /// Generates a file containing the Swift representation of a
 /// [GraphQL Input Object](https://spec.graphql.org/draft/#sec-Input-Objects).
@@ -15,5 +14,5 @@ struct InputObjectFileGenerator: FileGenerator {
     InputObjectTemplate(graphqlInputObject: graphqlInputObject, schema: schema, config: config)
   }
   var target: FileTarget { .inputObject }
-  var fileName: String { "\(graphqlInputObject.name).swift" }
+  var fileName: String { graphqlInputObject.name }
 }

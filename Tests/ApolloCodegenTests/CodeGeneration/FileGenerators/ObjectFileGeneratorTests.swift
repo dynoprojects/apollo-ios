@@ -1,7 +1,6 @@
 import XCTest
 import Nimble
 @testable import ApolloCodegenLib
-import ApolloUtils
 
 class ObjectFileGeneratorTests: XCTestCase {
   let graphqlObject = GraphQLObjectType.mock("MockObject", fields: [:], interfaces: [])
@@ -35,7 +34,7 @@ class ObjectFileGeneratorTests: XCTestCase {
     // given
     buildSubject()
 
-    let expected = "\(graphqlObject.name).swift"
+    let expected = graphqlObject.name
 
     // then
     expect(self.subject.fileName).to(equal(expected))

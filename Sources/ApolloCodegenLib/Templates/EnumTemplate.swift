@@ -1,5 +1,4 @@
 import Foundation
-import ApolloUtils
 
 /// Provides the format to convert a [GraphQL Enum](https://spec.graphql.org/draft/#sec-Enums) into
 /// Swift code.
@@ -9,7 +8,7 @@ struct EnumTemplate: TemplateRenderer {
 
   let config: ApolloCodegen.ConfigurationContext
 
-  let target: TemplateTarget = .schemaFile
+  let target: TemplateTarget = .schemaFile(type: .enum)
 
   var template: TemplateString {
     TemplateString(
@@ -27,26 +26,26 @@ struct EnumTemplate: TemplateRenderer {
   }
 
   private func enumCase(for graphqlEnumValue: GraphQLEnumValue) -> TemplateString? {
-    switch (
-      config.options.deprecatedEnumCases,
-      graphqlEnumValue.deprecationReason,
-      config.options.warningsOnDeprecatedUsage
-    ) {
-    case (.exclude, .some, _):
+    if config.options.deprecatedEnumCases == .exclude && graphqlEnumValue.isDeprecated {
       return nil
-
-    case let (.include, .some(reason), .include):
-      return """
-        \(documentation: graphqlEnumValue.documentation, config: config)
-        @available(*, deprecated, message: \"\(reason)\")
-        case `\(graphqlEnumValue.name)`
-        """
-
-    default:
-      return """
-        \(documentation: graphqlEnumValue.documentation, config: config)
-        case `\(graphqlEnumValue.name)`
-        """
     }
+
+    return """
+    \(documentation: graphqlEnumValue.documentation, config: config)
+    \(ifLet: graphqlEnumValue.deprecationReason, where: config.options.warningsOnDeprecatedUsage == .include, {"""
+      @available(*, deprecated, message: \"\($0)\")
+      """})
+    \(caseDefinition(for: graphqlEnumValue))
+    """
   }
+
+  private func caseDefinition(for graphqlEnumValue: GraphQLEnumValue) -> TemplateString {
+    """
+    case \(graphqlEnumValue.name.rendered(as: .swiftEnumCase, config: config.config))\
+    \(if: config.options.conversionStrategies.enumCases != .none, """
+       = "\(graphqlEnumValue.name.rendered(as: .rawValue, config: config.config))"
+      """)
+    """
+  }
+
 }

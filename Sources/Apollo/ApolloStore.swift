@@ -3,8 +3,6 @@ import Foundation
 import ApolloAPI
 #endif
 
-/// A function that returns a cache key for a particular result object. If it returns `nil`, a default cache key based on the field path will be used.
-public typealias CacheKeyForObject = (_ object: JSONObject) -> JSONValue?
 public typealias DidChangeKeysFunc = (Set<CacheKey>, UUID?) -> Void
 
 protocol ApolloStoreSubscriber: AnyObject {
@@ -47,10 +45,10 @@ public class ApolloStore {
   /// - Parameters:
   ///   - callbackQueue: The queue to call the completion block on. Defaults to `DispatchQueue.main`.
   ///   - completion: [optional] A completion block to be called after records are merged into the cache.
-  public func clearCache(callbackQueue: DispatchQueue = .main, completion: ((Result<Void, Error>) -> Void)? = nil) {
+  public func clearCache(callbackQueue: DispatchQueue = .main, completion: ((Result<Void, Swift.Error>) -> Void)? = nil) {
     queue.async(flags: .barrier) {
       let result = Result { try self.cache.clear() }
-      DispatchQueue.apollo.returnResultAsyncIfNeeded(
+      DispatchQueue.returnResultAsyncIfNeeded(
         on: callbackQueue,
         action: completion,
         result: result
@@ -65,18 +63,18 @@ public class ApolloStore {
   ///                 to assist in de-duping cache hits for watchers.
   ///   - callbackQueue: The queue to call the completion block on. Defaults to `DispatchQueue.main`.
   ///   - completion: [optional] A completion block to be called after records are merged into the cache.
-  public func publish(records: RecordSet, identifier: UUID? = nil, callbackQueue: DispatchQueue = .main, completion: ((Result<Void, Error>) -> Void)? = nil) {
+  public func publish(records: RecordSet, identifier: UUID? = nil, callbackQueue: DispatchQueue = .main, completion: ((Result<Void, Swift.Error>) -> Void)? = nil) {
     queue.async(flags: .barrier) {
       do {
         let changedKeys = try self.cache.merge(records: records)
         self.didChangeKeys(changedKeys, identifier: identifier)
-        DispatchQueue.apollo.returnResultAsyncIfNeeded(
+        DispatchQueue.returnResultAsyncIfNeeded(
           on: callbackQueue,
           action: completion,
           result: .success(())
         )
       } catch {
-        DispatchQueue.apollo.returnResultAsyncIfNeeded(
+        DispatchQueue.returnResultAsyncIfNeeded(
           on: callbackQueue,
           action: completion,
           result: .failure(error)
@@ -105,18 +103,18 @@ public class ApolloStore {
   ///   - completion: [optional] The completion block to perform when the read transaction completes. Defaults to nil.
   public func withinReadTransaction<T>(_ body: @escaping (ReadTransaction) throws -> T,
                                        callbackQueue: DispatchQueue? = nil,
-                                       completion: ((Result<T, Error>) -> Void)? = nil) {
+                                       completion: ((Result<T, Swift.Error>) -> Void)? = nil) {
     self.queue.async {
       do {
         let returnValue = try body(ReadTransaction(store: self))
         
-        DispatchQueue.apollo.returnResultAsyncIfNeeded(
+        DispatchQueue.returnResultAsyncIfNeeded(
           on: callbackQueue,
           action: completion,
           result: .success(returnValue)
         )
       } catch {
-        DispatchQueue.apollo.returnResultAsyncIfNeeded(
+        DispatchQueue.returnResultAsyncIfNeeded(
           on: callbackQueue,
           action: completion,
           result: .failure(error)
@@ -133,18 +131,18 @@ public class ApolloStore {
   ///   - completion: [optional] a completion block to fire when the read-write transaction completes. Defaults to nil.
   public func withinReadWriteTransaction<T>(_ body: @escaping (ReadWriteTransaction) throws -> T,
                                             callbackQueue: DispatchQueue? = nil,
-                                            completion: ((Result<T, Error>) -> Void)? = nil) {
+                                            completion: ((Result<T, Swift.Error>) -> Void)? = nil) {
     self.queue.async(flags: .barrier) {
       do {
         let returnValue = try body(ReadWriteTransaction(store: self))
         
-        DispatchQueue.apollo.returnResultAsyncIfNeeded(
+        DispatchQueue.returnResultAsyncIfNeeded(
           on: callbackQueue,
           action: completion,
           result: .success(returnValue)
         )
       } catch {
-        DispatchQueue.apollo.returnResultAsyncIfNeeded(
+        DispatchQueue.returnResultAsyncIfNeeded(
           on: callbackQueue,
           action: completion,
           result: .failure(error)
@@ -178,14 +176,21 @@ public class ApolloStore {
     }, callbackQueue: callbackQueue, completion: resultHandler)
   }
 
+  public enum Error: Swift.Error {
+    case notWithinReadTransaction
+  }
+
   public class ReadTransaction {
     fileprivate let cache: NormalizedCache
 
     fileprivate lazy var loader: DataLoader<CacheKey, Record> = DataLoader(self.cache.loadRecords)
     fileprivate lazy var executor = GraphQLExecutor { object, info in
         return object[info.cacheKeyForField]
-      } resolveReference: { reference in
-        self.loadObject(forKey: reference.key)
+      } resolveReference: { [weak self] reference in
+        guard let self = self else {
+          return .immediate(.failure(ApolloStore.Error.notWithinReadTransaction))
+        }
+        return self.loadObject(forKey: reference.key)
       }
 
     fileprivate init(store: ApolloStore) {
@@ -259,7 +264,7 @@ public class ApolloStore {
       )
     }
 
-    public func updateObject<SelectionSet: ApolloAPI.MutableRootSelectionSet>(
+    public func updateObject<SelectionSet: MutableRootSelectionSet>(
       ofType type: SelectionSet.Type,
       withKey key: CacheKey,
       variables: GraphQLOperation.Variables? = nil,
