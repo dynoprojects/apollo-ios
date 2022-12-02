@@ -27,7 +27,12 @@ public struct DataDict: Hashable {
       if T.self == Date.self {
         if let value = _data[key] as? String {
           do {
-            return try Date(value, strategy: .iso8601) as! T
+            return try Date(value, strategy: .iso8601
+              .year()
+              .month()
+              .day()
+              .time(includingFractionalSeconds: true)
+              .timeZone(separator: .omitted)) as! T
           } catch {
             warnOrExit()
             return Date() as! T
