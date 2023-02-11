@@ -4,12 +4,25 @@ import Foundation
 import Darwin
 
 func canonicalizeQuery(_ query: String) -> String {
-  let components = query.components(separatedBy: .whitespacesAndNewlines)
-  return components.filter { !$0.isEmpty }.joined(separator: " ")
+  let components = query
+    .replacingOccurrences(of: "{", with: " { ")
+    .replacingOccurrences(of: "}", with: " } ")
+    .replacingOccurrences(of: "(", with: " ( ")
+    .replacingOccurrences(of: ")", with: " ) ")
+      .replacingOccurrences(of: ",", with: "")
+    .components(separatedBy: .whitespacesAndNewlines)
+  return components
+    .filter { !$0.isEmpty && $0 != "__typename" }
+    .sorted() // lmfao
+    .joined(separator: " ")
 }
 
-class IR {
+var opIdsFromWeb: [String: String] = [:]
+struct NopeError: Error {}
 
+///////
+
+class IR {
   let compilationResult: CompilationResult
 
   let schema: Schema
@@ -18,8 +31,6 @@ class IR {
 
   var builtFragments: [String: NamedFragment] = [:]
 
-  var opIdsFromWeb: [String: String] = [:]
-
   init(schemaName: String, compilationResult: CompilationResult) {
     self.compilationResult = compilationResult
     self.schema = Schema(
@@ -27,9 +38,7 @@ class IR {
       referencedTypes: .init(compilationResult.referencedTypes),
       documentation: compilationResult.schemaDocumentation
     )
-
-    struct NopeError: Error {}
-
+    assert(opIdsFromWeb.isEmpty)
     do {
       let data = try Data(contentsOf: URL(fileURLWithPath: "/Users/cpiro/a/braid/web/packages/api-server/server-query-ids.json"), options: .mappedIfSafe)
       let jsonResult = try JSONSerialization.jsonObject(with: data, options: .mutableLeaves)
@@ -41,10 +50,15 @@ class IR {
         guard let query = inside["query"] as? String else {
           throw NopeError()
         }
-        //print(hash, canonicalizeQuery(query))
-        self.opIdsFromWeb[canonicalizeQuery(query)] = hash
+        let canon = canonicalizeQuery(query)
+        print(hash, canon)
+        if opIdsFromWeb[canon] != nil {
+          throw NopeError() // two queries canon'd down to the same string
+        } else {
+          opIdsFromWeb[canon] = hash
+        }
       }
-
+      print("-----------------------------------------")
     } catch {
       print(error)
       exit(1)
@@ -94,27 +108,15 @@ class IR {
     let referencedFragments: OrderedSet<NamedFragment>
 
     lazy var operationIdentifier: String = {
-      if #available(macOS 10.15, *) {
-        var hasher = SHA256()
-        func updateHash(with source: inout String) {
-          source.withUTF8({ buffer in
-            hasher.update(bufferPointer: UnsafeRawBufferPointer(buffer))
-          })
-        }
-        updateHash(with: &definition.source)
+      let queryParts = referencedFragments.map(\.definition.source) + [definition.source]
+      let query = canonicalizeQuery(queryParts.joined(separator: " "))
 
-        var newline: String
-        for fragment in referencedFragments {
-          newline = "\n"
-          updateHash(with: &newline)
-          updateHash(with: &fragment.definition.source)
-        }
-
-        let digest = hasher.finalize()
-        return digest.compactMap { String(format: "%02x", $0) }.joined()
-
+      if let id = opIdsFromWeb[query] {
+        print(id, query)
+        return id
       } else {
-        fatalError("Code Generation must be run on macOS 10.15+.")
+        print("????????????????????????????????????????????????????????????????", query)
+        exit(1)
       }
     }()
 
