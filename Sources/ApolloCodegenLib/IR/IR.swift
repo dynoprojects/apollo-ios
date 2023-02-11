@@ -1,5 +1,12 @@
 import OrderedCollections
 import CryptoKit
+import Foundation
+import Darwin
+
+func canonicalizeQuery(_ query: String) -> String {
+  let components = query.components(separatedBy: .whitespacesAndNewlines)
+  return components.filter { !$0.isEmpty }.joined(separator: " ")
+}
 
 class IR {
 
@@ -11,6 +18,8 @@ class IR {
 
   var builtFragments: [String: NamedFragment] = [:]
 
+  var opIdsFromWeb: [String: String] = [:]
+
   init(schemaName: String, compilationResult: CompilationResult) {
     self.compilationResult = compilationResult
     self.schema = Schema(
@@ -18,6 +27,28 @@ class IR {
       referencedTypes: .init(compilationResult.referencedTypes),
       documentation: compilationResult.schemaDocumentation
     )
+
+    struct NopeError: Error {}
+
+    do {
+      let data = try Data(contentsOf: URL(fileURLWithPath: "/Users/cpiro/a/braid/web/packages/api-server/server-query-ids.json"), options: .mappedIfSafe)
+      let jsonResult = try JSONSerialization.jsonObject(with: data, options: .mutableLeaves)
+      guard let jsonResult = jsonResult as? Dictionary<String, AnyObject> else {
+        throw NopeError()
+      }
+
+      for (hash, inside) in jsonResult {
+        guard let query = inside["query"] as? String else {
+          throw NopeError()
+        }
+        //print(hash, canonicalizeQuery(query))
+        self.opIdsFromWeb[canonicalizeQuery(query)] = hash
+      }
+
+    } catch {
+      print(error)
+      exit(1)
+    }
   }
 
   /// Represents a concrete entity in an operation or fragment that fields are selected upon.
