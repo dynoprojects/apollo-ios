@@ -1,8 +1,29 @@
 import OrderedCollections
 import CryptoKit
+import Foundation
+import Darwin
+
+// lmfao it works
+func canonicalizeQuery(_ query: String) -> String {
+  let components = query
+    .replacingOccurrences(of: "{", with: " { ")
+    .replacingOccurrences(of: "}", with: " } ")
+    .replacingOccurrences(of: "(", with: " ( ")
+    .replacingOccurrences(of: ")", with: " ) ")
+    .replacingOccurrences(of: ",", with: "")
+    .components(separatedBy: .whitespacesAndNewlines)
+  return components
+    .filter { !$0.isEmpty && $0 != "__typename" }
+    .sorted()
+    .joined(separator: " ")
+}
+
+var opIdsFromWeb: [String: String] = [:]
+struct NopeError: Error {}
+
+//
 
 class IR {
-
   let compilationResult: CompilationResult
 
   let schema: Schema
@@ -18,6 +39,31 @@ class IR {
       referencedTypes: .init(compilationResult.referencedTypes),
       documentation: compilationResult.schemaDocumentation
     )
+    assert(opIdsFromWeb.isEmpty)
+    do {
+      let data = try Data(contentsOf: URL(fileURLWithPath: "/Users/cpiro/a/braid/web/packages/api-server/server-query-ids.json"), options: .mappedIfSafe)
+      let jsonResult = try JSONSerialization.jsonObject(with: data, options: .mutableLeaves)
+      guard let jsonResult = jsonResult as? Dictionary<String, AnyObject> else {
+        throw NopeError()
+      }
+
+      for (hash, inside) in jsonResult {
+        guard let query = inside["query"] as? String else {
+          throw NopeError()
+        }
+        let canon = canonicalizeQuery(query)
+        print(hash, canon)
+        if opIdsFromWeb[canon] != nil {
+          throw NopeError() // two queries canon'd down to the same string
+        } else {
+          opIdsFromWeb[canon] = hash
+        }
+      }
+      print("\n-----------------------------------------\n")
+    } catch {
+      print(error)
+      exit(1)
+    }
   }
 
   /// Represents a concrete entity in an operation or fragment that fields are selected upon.
@@ -63,27 +109,15 @@ class IR {
     let referencedFragments: OrderedSet<NamedFragment>
 
     lazy var operationIdentifier: String = {
-      if #available(macOS 10.15, *) {
-        var hasher = SHA256()
-        func updateHash(with source: inout String) {
-          source.withUTF8({ buffer in
-            hasher.update(bufferPointer: UnsafeRawBufferPointer(buffer))
-          })
-        }
-        updateHash(with: &definition.source)
+      let queryParts = referencedFragments.map(\.definition.source) + [definition.source]
+      let query = canonicalizeQuery(queryParts.joined(separator: " "))
 
-        var newline: String
-        for fragment in referencedFragments {
-          newline = "\n"
-          updateHash(with: &newline)
-          updateHash(with: &fragment.definition.source)
-        }
-
-        let digest = hasher.finalize()
-        return digest.compactMap { String(format: "%02x", $0) }.joined()
-
+      if let id = opIdsFromWeb[query] {
+        //print(id, query)
+        return id
       } else {
-        fatalError("Code Generation must be run on macOS 10.15+.")
+        print("????????????????????????????????????????????????????????????????", query)
+        exit(1)
       }
     }()
 
