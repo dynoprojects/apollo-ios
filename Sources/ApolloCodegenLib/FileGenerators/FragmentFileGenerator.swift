@@ -15,5 +15,13 @@ struct FragmentFileGenerator: FileGenerator {
     config: config
   ) }
   var target: FileTarget { .fragment(irFragment.definition) }
-  var fileName: String { irFragment.definition.name }
+
+  // cpiro: lmao ensure generated fragment files and object files have distinct names so
+  // `fragment NetworkReferrerData on NetworkReferrerData` doesn't fuck up the whole game
+  //
+  //   error: filename "NetworkReferrerData.swift" used twice: ...
+  //   note: filenames are used to distinguish private declarations with the same name
+  //        -- Xcode choke of the century
+  //
+  var fileName: String { irFragment.definition.name + "-Fragment" }
 }
