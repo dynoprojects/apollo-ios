@@ -19,7 +19,10 @@ func canonicalizeQuery(_ query: String) -> String {
 }
 
 var opIdsFromWeb: [String: String] = [:]
-struct NopeError: Error {}
+struct NopeError1: Error {}
+struct NopeError2: Error {}
+struct NopeError3: Error {}
+struct NopeError4: Error {}
 
 //
 
@@ -44,19 +47,28 @@ class IR {
       let data = try Data(contentsOf: URL(fileURLWithPath: "/Users/cpiro/a/braid/web/packages/api-server/server-query-ids.json"), options: .mappedIfSafe)
       let jsonResult = try JSONSerialization.jsonObject(with: data, options: .mutableLeaves)
       guard let jsonResult = jsonResult as? Dictionary<String, AnyObject> else {
-        throw NopeError()
+        throw NopeError1()
       }
 
       for (hash, inside) in jsonResult {
         guard let query = inside["query"] as? String else {
-          throw NopeError()
+          throw NopeError2()
         }
-        let canon = canonicalizeQuery(query)
-        print(hash, canon)
-        if opIdsFromWeb[canon] != nil {
-          throw NopeError() // two queries canon'd down to the same string
-        } else {
-          opIdsFromWeb[canon] = hash
+        guard let archivedOn = inside["archivedOn"] as? Int? else {
+          throw NopeError4()
+        }
+        if archivedOn == nil {
+          let canon = canonicalizeQuery(query)
+          print(hash, canon)
+          if opIdsFromWeb[canon] != nil {
+            print("jfc")
+            print(query)
+            print(opIdsFromWeb[canon])
+            print(canon)
+            throw NopeError3() // two queries canon'd down to the same string
+          } else {
+            opIdsFromWeb[canon] = hash
+          }
         }
       }
       print("\n-----------------------------------------\n")
@@ -190,7 +202,7 @@ class IR {
     /// being spread into. This allows merged field calculations to include the fields merged in
     /// from the fragment.
     let fragment: NamedFragment
-    
+
     /// Indicates the location where the fragment has been "spread into" its enclosing
     /// operation/fragment. It's `scopePath` and `entity` reference are scoped to the operation it
     /// belongs to.
@@ -230,5 +242,5 @@ class IR {
       return description
     }
   }
-  
+
 }
